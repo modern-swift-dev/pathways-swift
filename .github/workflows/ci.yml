@@ -27,19 +27,24 @@ jobs:
     strategy:
       matrix:
         destination:
-          - generic/platform=macOS
-          - generic/platform=iOS
-          - generic/platform=tvOS
-          - generic/platform=visionOS
-          - generic/platform=watchOS
+          - platform=macOS
+          - platform=iOS Simulator,name=iPhone 17 Pro,OS=latest
+          - platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=latest
+          - platform=visionOS Simulator,name=Apple Vision Pro,OS=latest
+          - platform=watchOS Simulator,name=Apple Watch Series 11 (46mm),OS=latest
     steps:
       - uses: actions/checkout@v4
       - name: Verify Xcode 26.4.1 and Swift 6.3
         run: |
           xcodebuild -version | grep -F 'Xcode 26.4.1'
           swift --version | grep -F 'Swift version 6.3'
-      - name: Build for ${{ matrix.destination }}
-        run: xcodebuild build -scheme Pathways -destination '${{ matrix.destination }}'
-      - name: macOS SwiftPM tests
-        if: matrix.destination == 'generic/platform=macOS'
-        run: swift test
+      - name: Create watchOS simulator if needed
+        if: startsWith(matrix.destination, 'platform=watchOS Simulator')
+        run: |
+          if ! xcrun simctl list devices available | grep -Fq 'Apple Watch Series 11 (46mm)'; then
+            device_type=$(xcrun simctl list devicetypes -j | jq -r '.devicetypes[] | select(.name == "Apple Watch Series 11 (46mm)") | .identifier')
+            runtime=$(xcrun simctl list runtimes available -j | jq -r '[.runtimes[] | select(.identifier | startswith("com.apple.CoreSimulator.SimRuntime.watchOS-"))] | sort_by(.version) | last | .identifier')
+            xcrun simctl create 'Apple Watch Series 11 (46mm)' "$device_type" "$runtime"
+          fi
+      - name: Test on ${{ matrix.destination }}
+        run: xcodebuild test -scheme Pathways -destination '${{ matrix.destination }}'
