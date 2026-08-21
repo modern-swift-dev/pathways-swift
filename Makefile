@@ -6,7 +6,7 @@ TVOS_DESTINATION ?= platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS
 WATCHOS_DESTINATION ?= platform=watchOS Simulator,name=Apple Watch Series 11 (46mm),OS=latest
 VISIONOS_DESTINATION ?= platform=visionOS Simulator,name=Apple Vision Pro,OS=latest
 
-.PHONY: setup lint format documentation test test-macos test-ios test-tvos test-watchos test-visionos
+.PHONY: setup lint format documentation site-setup site-preview site-validate site-build test test-macos test-ios test-tvos test-watchos test-visionos
 
 setup:
 
@@ -29,6 +29,22 @@ format:
 documentation:
 
 	bash Scripts/build-documentation.sh
+
+site-setup:
+
+	bash Scripts/build-site.sh --setup
+
+site-preview:
+
+	bash Scripts/build-site.sh --preview
+
+site-validate:
+
+	bash Scripts/build-site.sh --validate-only
+
+site-build:
+
+	bash Scripts/build-site.sh
 
 test-macos:
 	set -o pipefail && \

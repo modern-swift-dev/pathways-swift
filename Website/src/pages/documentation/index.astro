@@ -1,0 +1,21 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import DocumentationCard from "../../components/DocumentationCard.astro";
+const base = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/`;
+---
+
+<BaseLayout title="Documentation | Pathways" description="Pathways documentation for typed routes and URL routing.">
+  <section class="page-hero"><div class="container narrow"><p class="eyebrow">Documentation</p><h1>Work with deep links as Swift values.</h1><p class="lede">Pathways defines flat, typed route models, converts them to and from URLs, and dispatches matching URLs to handlers.</p></div></section>
+  <section class="section"><div class="container card-grid">
+    <DocumentationCard title="Getting started" description="Install Pathways, define a route, encode it, decode it, and register a handler." href={`${base}documentation/getting-started/`} />
+    <DocumentationCard title="Typed routes" description="Patterns, coding keys, encoding, decoding, one-way models, and errors." href="#typed-routes" />
+    <DocumentationCard title="Routing URLs" description="Typed and path-only handlers, exact hosts, parameters, lifecycle, and SwiftUI integration." href="#routing-urls" />
+    <DocumentationCard title="Supported values and limits" description="Scalar values and the constraints of flat URL path data." href="#supported-values" />
+    <DocumentationCard title="Pathways API" description="The generated reference for the package's single public module." href={`${base}documentation/pathways/`} />
+  </div></section>
+  <section class="section tint"><div class="container documentation-sections">
+    <article id="typed-routes"><p class="eyebrow">Typed routes</p><h2>Patterns follow Codable keys.</h2><p>Each model declares a static pattern. Literal components identify the route, while components prefixed with <code>:</code> bind to Codable keys. Use <code>CodingKeys</code> when the Swift property and URL placeholder use different names.</p><p><code>Pathway</code> supports encoding and decoding. Use <code>PathwayEncodable</code> or <code>PathwayDecodable</code> for a one-way model.</p></article>
+    <article id="routing-urls"><p class="eyebrow">Routing URLs</p><h2>Choose typed or path-only handlers.</h2><p>Typed handlers validate and decode path values. Path-only handlers use prefix matching when no typed values are needed. A registration can require an exact host, and every handler receives query parameters as <code>[String: String]</code>.</p><p><code>handle(_:)</code> returns whether a handler ran and rethrows decoding or handler errors.</p></article>
+    <article id="supported-values"><p class="eyebrow">Supported values</p><h2>Keep route models flat.</h2><p>Pathways supports strings, booleans, integers, floating-point values, raw-value Codable enums, UUIDs, and ISO 8601 dates. Nested keyed containers, collections, and optional path segments are not supported.</p><p>Query parameters remain separate from the typed path model. Fragment parameters are experimental and require an explicit registration option.</p></article>
+  </div></section>
+</BaseLayout>

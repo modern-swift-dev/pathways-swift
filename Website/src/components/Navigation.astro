@@ -1,0 +1,15 @@
+---
+const base = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/`;
+const link = (path: string) => `${base}${path.replace(/^\//, "")}`;
+---
+
+<header class="site-header">
+  <nav class="container nav" aria-label="Main navigation">
+    <a class="brand" href={link("/")} aria-label="Pathways home">Pathways</a>
+    <div class="nav-links">
+      <a href={link("/documentation/")}>Documentation</a>
+      <a href={link("/examples/")}>Examples</a>
+      <a href="https://github.com/modern-swift-dev/pathways-swift">GitHub</a>
+    </div>
+  </nav>
+</header>

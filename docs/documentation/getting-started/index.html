@@ -1,0 +1,23 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><meta name="description" content="Install Pathways and define your first typed route."><link rel="icon" type="image/svg+xml" href="/pathways-swift/favicon.svg"><title>Getting started | Pathways</title><link rel="stylesheet" href="/pathways-swift/_astro/BaseLayout.B4UoDChD.css"></head><body><a class="skip-link" href="#content">Skip to content</a><header class="site-header"><nav class="container nav" aria-label="Main navigation"><a class="brand" href="/pathways-swift/" aria-label="Pathways home">Pathways</a><div class="nav-links"><a href="/pathways-swift/documentation/">Documentation</a><a href="/pathways-swift/examples/">Examples</a><a href="https://github.com/modern-swift-dev/pathways-swift">GitHub</a></div></nav></header><main id="content"><article class="article container narrow"><p class="eyebrow">Documentation</p><h1>Getting started</h1><p class="lede">Pathways turns URL paths into flat, strongly typed Swift values and dispatches incoming URLs to registered handlers.</p><h2>Requirements</h2><p>Use Swift 6.0 or newer. The package supports macOS 15, iOS 18, tvOS 18, watchOS 10, and visionOS 1 or newer.</p><h2>Add the package</h2><p>In Xcode, choose File &gt; Add Package Dependencies and enter <code>https://github.com/modern-swift-dev/pathways-swift.git</code>.</p><p>For another Swift package, add the current release to <code>Package.swift</code>, then add the <code>Pathways</code> product to the target that uses it.</p><pre class="code-block" data-language="swift"><code>.package(
+    url: &quot;https://github.com/modern-swift-dev/pathways-swift.git&quot;,
+    from: &quot;1.0.0&quot;
+)</code></pre><h2>Define a typed route</h2><p>A route model adopts <code>Pathway</code> and supplies a static pattern. A placeholder starts with <code>:</code> and must match its Codable key.</p><pre class="code-block" data-language="swift"><code>import Pathways
+
+struct ProfileRoute: Pathway {
+    static let pattern = &quot;/profiles/:userID&quot;
+
+    let userID: Int
+}</code></pre><h2>Encode and decode the route</h2><p>Encoding replaces the pattern placeholder with the model value. Decoding validates the incoming path and builds the same Swift type.</p><pre class="code-block" data-language="swift"><code>let profile = ProfileRoute(userID: 42)
+let path = try PathwayEncoder.shared.encode(profile)
+// /profiles/42
+
+let url = URL(string: &quot;https://example.com/profiles/42&quot;)!
+let decoded = try PathwayDecoder.shared.decode(ProfileRoute.self, from: url)
+// decoded.userID == 42</code></pre><h2>Route incoming URLs</h2><p>Create a routing center, register handlers, and pass URLs to <code>handle(_:)</code> on the main actor. It returns <code>true</code> after a matching handler runs and <code>false</code> when no registered host and route match.</p><pre class="code-block" data-language="swift"><code>var router = Pathways()
+
+router.register(host: &quot;example.com&quot;, ProfileRoute.self) { route, query in
+    print(&quot;Open profile \(route.userID)&quot;)
+    print(&quot;Source: \(query[&quot;source&quot;] ?? &quot;unknown&quot;)&quot;)
+}
+
+let handled = try router.handle(url)</code></pre><h2>Compare the result</h2><p>Use the boolean result to distinguish an unmatched URL from a handled one. Decode and handler failures throw, so invalid input stays separate from a URL that simply has no registration.</p><p>Continue with the <a href="/pathways-swift/documentation/">documentation hub</a> for coding keys, supported values, routing behavior, and API reference.</p></article></main><footer class="site-footer"><div class="container footer-content"><p>Pathways is available under the MIT License.</p><nav aria-label="Footer navigation"><a href="/pathways-swift/documentation/">Documentation</a><a href="https://github.com/modern-swift-dev/pathways-swift">Source</a></nav></div></footer></body></html>

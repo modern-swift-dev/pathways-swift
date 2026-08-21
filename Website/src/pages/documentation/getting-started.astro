@@ -1,0 +1,38 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CodeBlock from "../../components/CodeBlock.astro";
+import { getLatestRelease } from "../../lib/release";
+const release = await getLatestRelease();
+const base = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/`;
+const installation = `.package(
+    url: "https://github.com/modern-swift-dev/pathways-swift.git",
+    from: "${release.installationVersion}"
+)`;
+const route = `import Pathways\n\nstruct ProfileRoute: Pathway {\n    static let pattern = "/profiles/:userID"\n\n    let userID: Int\n}`;
+const roundTrip = `let profile = ProfileRoute(userID: 42)
+let path = try PathwayEncoder.shared.encode(profile)
+// /profiles/42
+
+let url = URL(string: "https://example.com/profiles/42")!
+let decoded = try PathwayDecoder.shared.decode(ProfileRoute.self, from: url)
+// decoded.userID == 42`;
+const handling = `var router = Pathways()\n\nrouter.register(host: "example.com", ProfileRoute.self) { route, query in\n    print("Open profile \\(route.userID)")\n    print("Source: \\(query[\"source\"] ?? \"unknown\")")\n}\n\nlet handled = try router.handle(url)`;
+---
+
+<BaseLayout title="Getting started | Pathways" description="Install Pathways and define your first typed route.">
+  <article class="article container narrow">
+    <p class="eyebrow">Documentation</p><h1>Getting started</h1>
+    <p class="lede">Pathways turns URL paths into flat, strongly typed Swift values and dispatches incoming URLs to registered handlers.</p>
+    <h2>Requirements</h2>
+    <p>Use Swift 6.0 or newer. The package supports macOS 15, iOS 18, tvOS 18, watchOS 10, and visionOS 1 or newer.</p>
+    <h2>Add the package</h2>
+    <p>In Xcode, choose File &gt; Add Package Dependencies and enter <code>https://github.com/modern-swift-dev/pathways-swift.git</code>.</p>
+    <p>For another Swift package, add the current release to <code>Package.swift</code>, then add the <code>Pathways</code> product to the target that uses it.</p>
+    <CodeBlock code={installation} />
+    <h2>Define a typed route</h2><p>A route model adopts <code>Pathway</code> and supplies a static pattern. A placeholder starts with <code>:</code> and must match its Codable key.</p><CodeBlock code={route} />
+    <h2>Encode and decode the route</h2><p>Encoding replaces the pattern placeholder with the model value. Decoding validates the incoming path and builds the same Swift type.</p><CodeBlock code={roundTrip} />
+    <h2>Route incoming URLs</h2><p>Create a routing center, register handlers, and pass URLs to <code>handle(_:)</code> on the main actor. It returns <code>true</code> after a matching handler runs and <code>false</code> when no registered host and route match.</p><CodeBlock code={handling} />
+    <h2>Compare the result</h2><p>Use the boolean result to distinguish an unmatched URL from a handled one. Decode and handler failures throw, so invalid input stays separate from a URL that simply has no registration.</p>
+    <p>Continue with the <a href={`${base}documentation/`}>documentation hub</a> for coding keys, supported values, routing behavior, and API reference.</p>
+  </article>
+</BaseLayout>

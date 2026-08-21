@@ -1,0 +1,14 @@
+---
+import type { Release } from "../lib/release";
+interface Props { release: Release; }
+const { release } = Astro.props;
+const published = new Intl.DateTimeFormat("en", { dateStyle: "long", timeZone: "UTC" }).format(new Date(release.publishedAt));
+---
+
+<aside class="release-card" aria-labelledby="release-heading">
+  <p class="eyebrow">Latest release</p>
+  <h2 id="release-heading">{release.tagName}</h2>
+  <p>Published {published}</p>
+  <p>Install from <code>{release.installationVersion}</code></p>
+  <a class="text-link" href={release.htmlUrl}>Read release notes <span aria-hidden="true">→</span></a>
+</aside>

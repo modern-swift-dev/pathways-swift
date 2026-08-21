@@ -1,0 +1,53 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><meta name="description" content="Buildable Pathways example packages."><link rel="icon" type="image/svg+xml" href="/pathways-swift/favicon.svg"><title>Examples | Pathways</title><link rel="stylesheet" href="/pathways-swift/_astro/BaseLayout.B4UoDChD.css"></head><body><a class="skip-link" href="#content">Skip to content</a><header class="site-header"><nav class="container nav" aria-label="Main navigation"><a class="brand" href="/pathways-swift/" aria-label="Pathways home">Pathways</a><div class="nav-links"><a href="/pathways-swift/documentation/">Documentation</a><a href="/pathways-swift/examples/">Examples</a><a href="https://github.com/modern-swift-dev/pathways-swift">GitHub</a></div></nav></header><main id="content"><section class="page-hero"><div class="container narrow"><p class="eyebrow">Examples</p><h1>Small packages you can run.</h1><p class="lede">Each example is an independent Swift package that depends on the repository root.</p></div></section><section class="section"><div class="container example-list"><article class="example-card"><h2>CodableRoutes</h2><p>Define a <code>Pathway</code> model, encode it into a path, and decode it from a URL.</p><pre class="code-block" data-language="swift"><code>import Foundation
+import Pathways
+
+enum AccountKind: String, Codable, Sendable {
+    case personal
+    case business
+}
+
+struct AccountRoute: Pathway {
+    static let pattern = &quot;/accounts/:accountID/:kind&quot;
+
+    let accountID: Int
+    let kind: AccountKind
+}
+
+let route = AccountRoute(accountID: 42, kind: .business)
+let path = try PathwayEncoder.shared.encode(route)
+
+guard let url = URL(string: &quot;https://example.com\(path)&quot;) else {
+    preconditionFailure(&quot;The example URL must be valid&quot;)
+}
+
+let decoded = try PathwayDecoder.shared.decode(AccountRoute.self, from: url)
+print(&quot;Decoded account: \(decoded.accountID) (\(decoded.kind.rawValue))&quot;)</code></pre><pre class="code-block" data-language="shell"><code>cd Examples/CodableRoutes
+swift run</code></pre><a href="https://github.com/modern-swift-dev/pathways-swift/blob/main/Examples/CodableRoutes/Sources/CodableRoutesExample/main.swift">View complete source →</a></article><article class="example-card"><h2>RoutingCenter</h2><p>Register typed and path-only routes, filter by exact host, read query parameters, and inspect the result from <code>handle(_:)</code>.</p><pre class="code-block" data-language="swift"><code>import Foundation
+import Pathways
+
+struct ProductRoute: Pathway {
+    static let pattern = &quot;/products/:productID&quot;
+
+    let productID: Int
+}
+
+@main enum RoutingCenterExample {
+  @MainActor static func main() throws {
+    var router = Pathways()
+
+    router.register(host: &quot;example.com&quot;, ProductRoute.self) { route, query in
+        let campaign = query[&quot;campaign&quot;, default: &quot;none&quot;]
+        print(&quot;Open product \(route.productID); campaign: \(campaign)&quot;)
+    }
+
+    router.register(host: &quot;example.com&quot;, path: &quot;/settings&quot;) { query in
+        let tab = query[&quot;tab&quot;, default: &quot;general&quot;]
+        print(&quot;Open settings tab: \(tab)&quot;)
+    }
+
+    let url = URL(string: &quot;https://example.com/products/42?campaign=summer&quot;)!
+    let handled = try router.handle(url)
+    print(&quot;Handled: \(handled)&quot;)
+  }
+}</code></pre><pre class="code-block" data-language="shell"><code>cd Examples/RoutingCenter
+swift run</code></pre><a href="https://github.com/modern-swift-dev/pathways-swift/blob/main/Examples/RoutingCenter/Sources/RoutingCenterExample/main.swift">View complete source →</a></article></div></section></main><footer class="site-footer"><div class="container footer-content"><p>Pathways is available under the MIT License.</p><nav aria-label="Footer navigation"><a href="/pathways-swift/documentation/">Documentation</a><a href="https://github.com/modern-swift-dev/pathways-swift">Source</a></nav></div></footer></body></html>

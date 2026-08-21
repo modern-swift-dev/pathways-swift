@@ -15,6 +15,7 @@ let package = Package(
         .library(name: "Pathways", targets: ["Pathways"])
     ],
     dependencies: [
+        .package(url: "https://github.com/swiftlang/swift-docc-plugin", exact: "1.5.0")
     ],
     targets: [
         .target(name: "Pathways"),

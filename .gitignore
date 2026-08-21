@@ -35,3 +35,9 @@ playground.xcworkspace
 .swiftpm
 
 .DS_Store
+
+# Website build output
+Website/node_modules/
+Website/.astro/
+Website/dist/
+staging/

@@ -54,7 +54,7 @@ Or add the package in `Package.swift`:
 dependencies: [
     .package(
         url: "https://github.com/modern-swift-dev/pathways-swift.git",
-        branch: "main"
+        from: "1.0.0"
     )
 ]
 ```
@@ -179,10 +179,9 @@ Each can be run independently with `swift run` from its directory.
 
 ## Documentation
 
-- [Getting started](docs/getting-started.md)
-- [Typed routes](docs/typed-routes.md)
-- [Routing URLs](docs/routing.md)
-- [Supported values and limitations](docs/limitations.md)
+- [Guide](https://modern-swift-dev.github.io/pathways-swift/)
+- [Examples](https://modern-swift-dev.github.io/pathways-swift/examples/)
+- [API documentation](https://modern-swift-dev.github.io/pathways-swift/documentation/pathways/)
 
 ## Development
 
@@ -200,6 +199,23 @@ swift build --package-path Examples/RoutingCenter
 ```
 
 The repository's `Makefile` also provides formatting, linting, and platform-specific test targets. Development tool versions are managed through Mint and Homebrew files in the repository.
+
+## Maintainers
+
+The website source lives in `Website/`. Generated documentation is written to `docs/` and committed to the repository.
+
+To work on the website locally:
+
+```sh
+make site-setup
+make site-preview
+make site-validate
+make site-build
+```
+
+To publish a release, publish the GitHub release first, then run `make site-build`. Review the rendered latest release and the DocC changes before committing the generated `docs/` directory.
+
+For the one-time GitHub Pages setup, open **Settings > Pages**, choose **Deploy from a branch**, select `main` and `/docs`, then save. See the [GitHub Pages publishing-source guide](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
 
 ## License
 

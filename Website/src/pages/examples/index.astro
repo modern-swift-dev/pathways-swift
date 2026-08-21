@@ -1,0 +1,66 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CodeBlock from "../../components/CodeBlock.astro";
+const codable = `import Foundation
+import Pathways
+
+enum AccountKind: String, Codable, Sendable {
+    case personal
+    case business
+}
+
+struct AccountRoute: Pathway {
+    static let pattern = "/accounts/:accountID/:kind"
+
+    let accountID: Int
+    let kind: AccountKind
+}
+
+let route = AccountRoute(accountID: 42, kind: .business)
+let path = try PathwayEncoder.shared.encode(route)
+
+guard let url = URL(string: "https://example.com\\(path)") else {
+    preconditionFailure("The example URL must be valid")
+}
+
+let decoded = try PathwayDecoder.shared.decode(AccountRoute.self, from: url)
+print("Decoded account: \\(decoded.accountID) (\\(decoded.kind.rawValue))")`;
+const routing = `import Foundation
+import Pathways
+
+struct ProductRoute: Pathway {
+    static let pattern = "/products/:productID"
+
+    let productID: Int
+}
+
+@main enum RoutingCenterExample {
+  @MainActor static func main() throws {
+    var router = Pathways()
+
+    router.register(host: "example.com", ProductRoute.self) { route, query in
+        let campaign = query["campaign", default: "none"]
+        print("Open product \\(route.productID); campaign: \\(campaign)")
+    }
+
+    router.register(host: "example.com", path: "/settings") { query in
+        let tab = query["tab", default: "general"]
+        print("Open settings tab: \\(tab)")
+    }
+
+    let url = URL(string: "https://example.com/products/42?campaign=summer")!
+    let handled = try router.handle(url)
+    print("Handled: \\(handled)")
+  }
+}`;
+const run = `cd Examples/CodableRoutes
+swift run`;
+---
+
+<BaseLayout title="Examples | Pathways" description="Buildable Pathways example packages.">
+  <section class="page-hero"><div class="container narrow"><p class="eyebrow">Examples</p><h1>Small packages you can run.</h1><p class="lede">Each example is an independent Swift package that depends on the repository root.</p></div></section>
+  <section class="section"><div class="container example-list">
+    <article class="example-card"><h2>CodableRoutes</h2><p>Define a <code>Pathway</code> model, encode it into a path, and decode it from a URL.</p><CodeBlock code={codable} /><CodeBlock code={run} language="shell" /><a href="https://github.com/modern-swift-dev/pathways-swift/blob/main/Examples/CodableRoutes/Sources/CodableRoutesExample/main.swift">View complete source →</a></article>
+    <article class="example-card"><h2>RoutingCenter</h2><p>Register typed and path-only routes, filter by exact host, read query parameters, and inspect the result from <code>handle(_:)</code>.</p><CodeBlock code={routing} /><CodeBlock code={run.replace("CodableRoutes", "RoutingCenter")} language="shell" /><a href="https://github.com/modern-swift-dev/pathways-swift/blob/main/Examples/RoutingCenter/Sources/RoutingCenterExample/main.swift">View complete source →</a></article>
+  </div></section>
+</BaseLayout>

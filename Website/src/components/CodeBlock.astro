@@ -1,0 +1,6 @@
+---
+interface Props { code: string; language?: string; }
+const { code, language = "swift" } = Astro.props;
+---
+
+<pre class="code-block" data-language={language}><code>{code}</code></pre>
