@@ -150,7 +150,15 @@ router.register(host: "example.com", path: "/settings") { query in
 }
 ```
 
-Path-only registrations use prefix matching, so `/settings` also matches `/settings/privacy`.
+Path-only registrations use prefix matching by default, so `/settings` also matches `/settings/privacy`. Pass `matching: .exact` when the complete normalized path must match:
+
+```swift
+router.register(host: "example.com", path: "/settings", matching: .exact) { query in
+    navigateToSettings(tab: query["tab"])
+}
+```
+
+Exact matching also applies to typed routes. Each `:` placeholder matches one non-empty path component.
 
 ## Query and fragment parameters
 

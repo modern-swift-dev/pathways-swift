@@ -1,7 +1,6 @@
 import Foundation
 
-/// An implementation that simply acts on the path, exact match, allowing
-/// for routing to occurs on routes with any dynamic parameters
+/// A handler that invokes a closure for a matching path.
 struct PathwayPathHandler: PathwayHandling {
 
     var pattern: String {
@@ -20,6 +19,9 @@ struct PathwayPathHandler: PathwayHandling {
     /// Flag for fragment params handling
     private let supportFragmentParams: Bool
 
+    /// The path matching behavior.
+    private let matching: PathwayMatchPolicy
+
     /// The initializer
     /// - parameter host: If supplied, the host of the URL is validated.
     /// - parameter path: The url path
@@ -28,16 +30,17 @@ struct PathwayPathHandler: PathwayHandling {
     init(
         host: String? = nil,
         path: String,
+        matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping ([String: String]) -> Void
     ) {
         self.host = host
         self.path = path
+        self.matching = matching
         self.supportFragmentParams = supportFragmentParams
         self.handler = handler
     }
 
-    /// The implementation for the canHandle, checking for the prefix is the same
     func canHandle(_ url: URL) -> Bool {
         if let host, url.host != host {
             return false
@@ -53,7 +56,12 @@ struct PathwayPathHandler: PathwayHandling {
             candidatePath = "\(candidatePath)/#\(parts[0])"
         }
 
-        return candidatePath.hasPrefix(path)
+        return switch matching {
+            case .prefix:
+                candidatePath.hasPrefix(path)
+            case .exact:
+                candidatePath == path
+        }
     }
 
     /// Handle the URL using the callback.

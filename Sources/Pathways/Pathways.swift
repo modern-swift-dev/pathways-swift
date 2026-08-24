@@ -2,7 +2,7 @@ import Foundation
 
 /// A value-based router that dispatches URLs to registered handlers.
 ///
-/// Register typed ``Pathway`` route models or path-prefix handlers, then
+/// Register typed ``Pathway`` route models or path handlers, then
 /// call ``handle(_:)`` for each incoming URL.
 public struct Pathways: PathwaysProviding {
 
@@ -27,14 +27,43 @@ public struct Pathways: PathwaysProviding {
     ///     fragment route into the handler's parameter dictionary.
     ///   - handler: The main-actor closure invoked with the decoded route and
     ///     URL parameters.
+    /// - Important: This overload uses ``PathwayMatchPolicy/prefix``.
     public mutating func register<T: Pathway>(
         host: String,
         _: T.Type,
         supportFragmentParams: Bool = false,
         handler: @escaping @MainActor @Sendable (T, [String: String]) -> Void
     ) {
+        register(
+            host: host,
+            T.self,
+            matching: .prefix,
+            supportFragmentParams: supportFragmentParams,
+            handler: handler
+        )
+    }
+
+    /// Registers a typed handler for one exact host.
+    ///
+    /// - Parameters:
+    ///   - host: The exact URL host the handler accepts.
+    ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
+    ///     matched and decoded.
+    ///   - matching: The policy used to match the route.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the handler's parameter dictionary.
+    ///   - handler: The main-actor closure invoked with the decoded route and
+    ///     URL parameters.
+    public mutating func register<T: Pathway>(
+        host: String,
+        _: T.Type,
+        matching: PathwayMatchPolicy,
+        supportFragmentParams: Bool = false,
+        handler: @escaping @MainActor @Sendable (T, [String: String]) -> Void
+    ) {
         handlers.append(PathwayPatternHandler(
             host: host,
+            matching: matching,
             supportFragmentParams: supportFragmentParams,
             handler
         ))
@@ -51,15 +80,42 @@ public struct Pathways: PathwaysProviding {
     ///     URL parameters.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
+    ///   This overload uses ``PathwayMatchPolicy/prefix``.
     public mutating func register<T: Pathway>(
         _: T.Type,
         supportFragmentParams: Bool = false,
         handler: @escaping @MainActor @Sendable (T, [String: String]) -> Void
     ) {
-        handlers.append(PathwayPatternHandler(supportFragmentParams: supportFragmentParams, handler))
+        register(
+            T.self,
+            matching: .prefix,
+            supportFragmentParams: supportFragmentParams,
+            handler: handler
+        )
     }
 
-    /// Registers a path-prefix handler for one exact host.
+    /// Registers a typed handler without restricting it to a specific host.
+    ///
+    /// - Parameters:
+    ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
+    ///     matched and decoded.
+    ///   - matching: The policy used to match the route.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the handler's parameter dictionary.
+    ///   - handler: The main-actor closure invoked with the decoded route and
+    ///     URL parameters.
+    /// - Important: A hostless registration can handle URLs whose host equals
+    ///   ``baseHost`` or a host declared by another registration.
+    public mutating func register<T: Pathway>(
+        _: T.Type,
+        matching: PathwayMatchPolicy,
+        supportFragmentParams: Bool = false,
+        handler: @escaping @MainActor @Sendable (T, [String: String]) -> Void
+    ) {
+        handlers.append(PathwayPatternHandler(matching: matching, supportFragmentParams: supportFragmentParams, handler))
+    }
+
+    /// Registers a path handler for one exact host.
     ///
     /// - Parameters:
     ///   - host: The exact URL host the handler accepts.
@@ -67,23 +123,48 @@ public struct Pathways: PathwaysProviding {
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the handler's parameter dictionary.
     ///   - handler: The main-actor closure invoked with URL parameters.
-    /// - Important: Path matching is prefix-based, so a path of `/settings` also
-    ///   matches `/settings/privacy`.
+    /// - Important: This overload uses ``PathwayMatchPolicy/prefix``.
     public mutating func register(
         host: String,
         path: String,
         supportFragmentParams: Bool = false,
         handler: @escaping @MainActor @Sendable ([String: String]) -> Void
     ) {
+        register(
+            host: host,
+            path: path,
+            matching: .prefix,
+            supportFragmentParams: supportFragmentParams,
+            handler: handler
+        )
+    }
+
+    /// Registers a path handler for one exact host.
+    ///
+    /// - Parameters:
+    ///   - host: The exact URL host the handler accepts.
+    ///   - path: The path the handler accepts.
+    ///   - matching: The policy used to match the path.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the handler's parameter dictionary.
+    ///   - handler: The main-actor closure invoked with URL parameters.
+    public mutating func register(
+        host: String,
+        path: String,
+        matching: PathwayMatchPolicy,
+        supportFragmentParams: Bool = false,
+        handler: @escaping @MainActor @Sendable ([String: String]) -> Void
+    ) {
         handlers.append(PathwayPathHandler(
             host: host,
             path: path,
+            matching: matching,
             supportFragmentParams: supportFragmentParams,
             handler: handler
         ))
     }
 
-    /// Registers a path-prefix handler without restricting it to a specific host.
+    /// Registers a path handler without restricting it to a specific host.
     ///
     /// - Parameters:
     ///   - path: The path prefix the handler accepts.
@@ -91,15 +172,40 @@ public struct Pathways: PathwaysProviding {
     ///     fragment route into the handler's parameter dictionary.
     ///   - handler: The main-actor closure invoked with URL parameters.
     /// - Important: A hostless registration can handle URLs whose host equals
-    ///   ``baseHost`` or a host declared by another registration. Path matching
-    ///   is prefix-based.
+    ///   ``baseHost`` or a host declared by another registration.
+    ///   This overload uses ``PathwayMatchPolicy/prefix``.
     public mutating func register(
         path: String,
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping ([String: String]) -> Void
     ) {
+        register(
+            path: path,
+            matching: .prefix,
+            supportFragmentParams: supportFragmentParams,
+            handler: handler
+        )
+    }
+
+    /// Registers a path handler without restricting it to a specific host.
+    ///
+    /// - Parameters:
+    ///   - path: The path the handler accepts.
+    ///   - matching: The policy used to match the path.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the handler's parameter dictionary.
+    ///   - handler: The main-actor closure invoked with URL parameters.
+    /// - Important: A hostless registration can handle URLs whose host equals
+    ///   ``baseHost`` or a host declared by another registration.
+    public mutating func register(
+        path: String,
+        matching: PathwayMatchPolicy,
+        supportFragmentParams: Bool = false,
+        handler: @MainActor @Sendable @escaping ([String: String]) -> Void
+    ) {
         handlers.append(PathwayPathHandler(
             path: path,
+            matching: matching,
             supportFragmentParams: supportFragmentParams,
             handler: handler
         ))

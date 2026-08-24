@@ -42,19 +42,37 @@ public protocol Pathway: PathwayDecodable, PathwayEncodable {}
 extension PathwayPatternProvider {
 
     static var regex: NSRegularExpression? {
+        regex(matching: .prefix)
+    }
+
+    static func regex(matching policy: PathwayMatchPolicy) -> NSRegularExpression? {
         var regex = "^"
         regex += NSRegularExpression.escapedPattern(for: "/")
         let components = pattern.split(separator: "/").map { String($0) }
         for (index, component) in components.enumerated() {
             if component.hasPrefix(":") {
-                regex += ".*"
+                switch policy {
+                    case .prefix:
+                        regex += ".*"
+                    case .exact:
+                        regex += "[^/]+"
+                }
             } else {
-                regex += component
+                switch policy {
+                    case .prefix:
+                        regex += component
+                    case .exact:
+                        regex += NSRegularExpression.escapedPattern(for: component)
+                }
             }
 
             if index < components.count - 1 {
                 regex += NSRegularExpression.escapedPattern(for: "/")
             }
+        }
+
+        if case .exact = policy {
+            regex += "$"
         }
 
         // swiftlint:disable:next force_try
