@@ -84,16 +84,16 @@ struct PathwayRegressionTests {
 
     @Test(arguments: [PathwayMatchPolicy.prefix, .exact])
     @MainActor func typedFragmentPreservesValuesAndParameters(_ matching: PathwayMatchPolicy) throws {
-        let url = try #require(URL(string: "https://localhost/callback#complete/123?token=abc"))
-        #expect(try PathwayDecoder.shared.decode(FragmentRoute.self, from: url).id == "123")
+        let url = try #require(URL(string: "https://localhost/callback#complete/a%2Fb%3Fc%23d?token=x%26y%3Dz"))
+        #expect(try PathwayDecoder.shared.decode(FragmentRoute.self, from: url).id == "a/b?c#d")
         var router = Pathways()
         var received: String?
         router.register(host: "localhost", FragmentRoute.self, matching: matching, supportFragmentParams: true) { route, parameters in
             received = route.id
-            #expect(parameters == ["token": "abc"])
+            #expect(parameters == ["token": "x&y=z"])
         }
         #expect(try router.handle(url))
-        #expect(received == "123")
+        #expect(received == "a/b?c#d")
     }
 
     @Test(arguments: ["a/b", "a?b", "a#b", "a%20b", "hello world", "é/你好", "a&b=c"])

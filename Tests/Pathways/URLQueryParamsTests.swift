@@ -41,4 +41,15 @@ import Testing
 
         #expect(params == ["q": "1", "f": "2"])
     }
+
+    @Test func fragmentParametersDecodeOnlyAfterSplitting() throws {
+        let url = try #require(URL(string: "https://example.com/path#complete?token=a%26b%3Dc&name=hello%20world&literal=a%2520b&question=a%3Fb&encoded%26key=value"))
+        #expect(url.fragmentParams.asDictionary == [
+            "token": "a&b=c",
+            "name": "hello world",
+            "literal": "a%20b",
+            "question": "a?b",
+            "encoded&key": "value"
+        ])
+    }
 }

@@ -14,26 +14,20 @@ extension URL {
 
     /// Return only the fragment params
     var fragmentParams: [URLQueryItem] {
-        if let components = URLComponents(url: self, resolvingAgainstBaseURL: false),
-           let fragment = components.fragment, !fragment.isEmpty {
-            let fragmentParts = fragment.split(separator: "?")
-            if fragmentParts.count == 2 {
-                return String(fragmentParts[1]).split(separator: "&")
-                    .map { String($0) }
-                    .compactMap { value -> URLQueryItem? in
-                        let values = value.split(separator: "=")
-                        if values.count == 2 {
-                            return URLQueryItem(
-                                name: String(values[0]),
-                                value: String(values[1])
-                            )
-                        } else {
-                            return nil
-                        }
-                    }
-            }
+        guard let fragment = URLComponents(url: self, resolvingAgainstBaseURL: false)?.percentEncodedFragment,
+              let separator = fragment.firstIndex(of: "?") else {
+            return []
         }
-        return []
+        let query = fragment[fragment.index(after: separator)...]
+        return query.split(separator: "&").compactMap { pair in
+            let parts = pair.split(separator: "=", omittingEmptySubsequences: false)
+            guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty,
+                  let name = String(parts[0]).removingPercentEncoding,
+                  let value = String(parts[1]).removingPercentEncoding else {
+                return nil
+            }
+            return URLQueryItem(name: name, value: value)
+        }
     }
 }
 
