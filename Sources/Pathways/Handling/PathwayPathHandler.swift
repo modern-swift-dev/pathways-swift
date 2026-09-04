@@ -52,8 +52,9 @@ struct PathwayPathHandler: PathwayHandling {
         }
 
         if let fragment = url.fragment, !fragment.isEmpty {
-            let parts = fragment.split(separator: "?")
-            candidatePath = "\(candidatePath)/#\(parts[0])"
+            if let route = fragment.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first, !route.isEmpty {
+                candidatePath = "\(candidatePath)/#\(route)"
+            }
         }
 
         return switch matching {

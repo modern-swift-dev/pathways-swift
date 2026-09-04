@@ -37,8 +37,9 @@ public final class PathwayDecoder: Sendable {
 
         var path = from.path
         if let fragment = from.fragment, !fragment.isEmpty {
-            let parts = fragment.split(separator: "?")
-            path = "\(path)/#\(parts[0])"
+            if let route = fragment.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first, !route.isEmpty {
+                path = "\(path)/#\(route)"
+            }
         }
 
         if path.hasPrefix("//") {
