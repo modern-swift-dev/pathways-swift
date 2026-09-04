@@ -54,4 +54,42 @@ import Testing
         #expect(try center.handle(#require(URL(string: "https://localhost/settings/privacy"))) == false)
         #expect(try center.handle(#require(URL(string: "https://other.example/settings"))) == false)
     }
+
+    @Test(arguments: [false, true]) func lexicalPrecedenceIgnoresRegistrationOrder(reverseOrder: Bool) throws {
+        var center = Pathways()
+        center.baseHost = "localhost"
+        var selectedPattern: String?
+        let patterns = reverseOrder ? ["/user/1", "/user"] : ["/user", "/user/1"]
+        for pattern in patterns {
+            center.register(path: pattern) { _ in selectedPattern = pattern }
+        }
+        center.register(path: "/zzz") { _ in Issue.record("Nonmatching handler invoked") }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/user/1/details"))))
+        #expect(selectedPattern == "/user/1")
+    }
+
+    @Test func lexicalPrecedenceDoesNotPreferLongerLiteralPattern() throws {
+        var center = Pathways()
+        center.baseHost = "localhost"
+        var receivedID: Int?
+        center.register(path: "/user/1/details") { _ in
+            Issue.record("Longer but lexically smaller pattern selected")
+        }
+        center.register(TestSingleFieldPathway.self) { route, _ in receivedID = route.id }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/user/1/details"))))
+        #expect(receivedID == 1)
+    }
+
+    @Test func equalPatternsSelectFirstRegisteredHandler() throws {
+        var center = Pathways()
+        center.baseHost = "localhost"
+        var invocationOrder: [Int] = []
+        center.register(path: "/settings") { _ in invocationOrder.append(1) }
+        center.register(path: "/settings") { _ in invocationOrder.append(2) }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/settings"))))
+        #expect(invocationOrder == [1])
+    }
 }

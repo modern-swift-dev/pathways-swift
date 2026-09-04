@@ -229,12 +229,15 @@ public struct Pathways: PathwaysProviding {
             return false
         }
 
-        if let handler = handlers
-            .filter({ $0.canHandle(url) })
-            .sorted(by: { lhs, rhs in
-                lhs.pattern > rhs.pattern
-            })
-            .first {
+        var bestHandler: (any PathwayHandling)?
+        for handler in handlers where handler.canHandle(url) {
+            if let current = bestHandler, current.pattern >= handler.pattern {
+                continue
+            }
+            bestHandler = handler
+        }
+
+        if let handler = bestHandler {
             try handler.handle(url: url)
             return true
         }
