@@ -79,6 +79,40 @@ public protocol PathwaysProviding: Sendable {
         handler: @MainActor @Sendable @escaping ([String: String]) -> Void
     )
 
+    /// Registers a typed handler with an explicit matching policy.
+    mutating func register<T: Pathway>(
+        _ type: T.Type,
+        matching: PathwayMatchPolicy,
+        supportFragmentParams: Bool,
+        handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
+    )
+
+    /// Registers a typed handler for one exact host with an explicit matching policy.
+    mutating func register<T: Pathway>(
+        host: String,
+        _ type: T.Type,
+        matching: PathwayMatchPolicy,
+        supportFragmentParams: Bool,
+        handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
+    )
+
+    /// Registers a path handler with an explicit matching policy.
+    mutating func register(
+        path: String,
+        matching: PathwayMatchPolicy,
+        supportFragmentParams: Bool,
+        handler: @MainActor @Sendable @escaping ([String: String]) -> Void
+    )
+
+    /// Registers a path handler for one exact host with an explicit matching policy.
+    mutating func register(
+        host: String,
+        path: String,
+        matching: PathwayMatchPolicy,
+        supportFragmentParams: Bool,
+        handler: @MainActor @Sendable @escaping ([String: String]) -> Void
+    )
+
     /// Handles a URL with the best matching registered handler.
     ///
     /// - Parameter url: The incoming URL to route.
