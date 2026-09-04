@@ -269,11 +269,14 @@ private class PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContai
         codingPath.append(key)
 
         if T.self == Date.self {
-            if let index = parent.componentsByIndex.first(where: { $0.name == key.stringValue })?.index {
-                let pathComponent = parent.components[index]
-                // swiftlint:disable:next force_cast
-                return ISO8601DateFormatter.noFractionalSeconds.date(from: pathComponent) as! T as T
+            guard let index = parent.componentsByIndex.first(where: { $0.name == key.stringValue })?.index,
+                  parent.components.indices.contains(index) else {
+                throw PathwayError.notFound
             }
+            guard let date = ISO8601DateFormatter.noFractionalSeconds.date(from: parent.components[index]) as? T else {
+                throw PathwayError.notDecodable
+            }
+            return date
         }
 
         return try type.init(from: parent)
