@@ -115,4 +115,53 @@ struct PathwayRegressionTests {
         #expect(try PathwayEncoder.shared.encode(StringRoute(id: "a/b")) == "/user/a%2Fb")
     }
 
+    private struct CodingPathValue: Decodable, Sendable {
+        let path: [String]
+        let value: String
+
+        init(from decoder: any Decoder) throws {
+            path = decoder.codingPath.map(\.stringValue)
+            value = try decoder.singleValueContainer().decode(String.self)
+        }
+    }
+
+    private struct InspectedRoute: PathwayDecodable {
+        static let pattern = "/user/:identifier/:second"
+        let first: CodingPathValue
+        let second: CodingPathValue
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case identifier
+            case second
+            case absent
+        }
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            #expect(Set(container.allKeys.map(\.stringValue)) == ["identifier", "second"])
+            #expect(container.contains(.identifier))
+            #expect(container.contains(.id) == false)
+            #expect(container.contains(.absent) == false)
+            #expect(try container.decodeIfPresent(String.self, forKey: .absent) == nil)
+            #expect(throws: PathwayError.notDecodable) {
+                try container.decode(Int.self, forKey: .identifier)
+            }
+            #expect(container.codingPath.isEmpty)
+            first = try container.decode(CodingPathValue.self, forKey: .identifier)
+            second = try container.decode(CodingPathValue.self, forKey: .second)
+            #expect(try container.decodeIfPresent(String.self, forKey: .identifier) == "first")
+            #expect(container.codingPath.isEmpty)
+            #expect(decoder.codingPath.isEmpty)
+        }
+    }
+
+    @Test func keyedDecoderReportsKeysAndRestoresCodingPaths() throws {
+        let url = try #require(URL(string: "https://localhost/user/first/second"))
+        let route = try PathwayDecoder.shared.decode(InspectedRoute.self, from: url)
+        #expect(route.first.path == ["identifier"])
+        #expect(route.first.value == "first")
+        #expect(route.second.path == ["second"])
+        #expect(route.second.value == "second")
+    }
 }

@@ -71,10 +71,8 @@ private class PathwayDecoderImpl: Decoder {
     let componentsByIndex: [(index: Int, name: String)]
 
     let components: [String]
-    let pattern: String
 
     init(pattern: String, components: [String]) {
-        self.pattern = pattern
         self.components = components
         componentsByIndex = pattern.split(separator: "/").enumerated().compactMap { index, component in
             component.hasPrefix(":") ? (index: index, name: String(component.dropFirst())) : nil
@@ -124,7 +122,14 @@ private class PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContai
         }
     }
 
-    var allKeys: [Key] = []
+    var allKeys: [Key] {
+        parent.componentsByIndex.compactMap { tuple in
+            guard parent.components.indices.contains(tuple.index), !parent.components[tuple.index].isEmpty else {
+                return nil
+            }
+            return Key(stringValue: tuple.name)
+        }
+    }
 
     private let parent: PathwayDecoderImpl
 
@@ -133,106 +138,119 @@ private class PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContai
     }
 
     func contains(_ key: Key) -> Bool {
-        parent.pattern.contains(":\(key.stringValue)")
+        (try? parent.component(for: key)) != nil
     }
 
-    func decodeNil(forKey _: Key) throws -> Bool {
-        throw PathwayError.unsupported
+    func decodeNil(forKey key: Key) throws -> Bool {
+        _ = try parent.component(for: key)
+        return false
     }
 
     func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: String.Type, forKey key: Key) throws -> String {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: Float.Type, forKey key: Key) throws -> Float {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: Int.Type, forKey key: Key) throws -> Int {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         return try type.init(from: parent)
     }
 
     func decode<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         if T.self == Date.self {
-            guard let index = parent.componentsByIndex.first(where: { $0.name == key.stringValue })?.index,
-                  parent.components.indices.contains(index) else {
-                throw PathwayError.notFound
-            }
-            guard let date = ISO8601DateFormatter.noFractionalSeconds.date(from: parent.components[index]) as? T else {
+            let component = try parent.component(for: key)
+            guard let date = ISO8601DateFormatter.noFractionalSeconds.date(from: component) as? T else {
                 throw PathwayError.notDecodable
             }
             return date
