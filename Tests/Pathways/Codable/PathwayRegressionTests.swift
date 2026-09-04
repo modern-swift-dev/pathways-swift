@@ -40,4 +40,34 @@ struct PathwayRegressionTests {
         #expect(try path.handle(url))
     }
 
+    private struct LiteralRoute: Pathway {
+        static let pattern = "/file[/:id"
+        let id: String
+    }
+
+    private struct DotRoute: Pathway {
+        static let pattern = "/v1.0/:id"
+        let id: String
+    }
+
+    @Test(arguments: [PathwayMatchPolicy.prefix, .exact])
+    @MainActor func regexMetacharactersAreLiteral(_ matching: PathwayMatchPolicy) throws {
+        let bracket = try #require(URL(string: "https://localhost/file%5B/123"))
+        #expect(try PathwayDecoder.shared.decode(LiteralRoute.self, from: bracket).id == "123")
+        var router = Pathways()
+        router.register(host: "localhost", LiteralRoute.self, matching: matching) { route, _ in
+            #expect(route.id == "123")
+        }
+        #expect(try router.handle(bracket))
+
+        router.register(host: "localhost", DotRoute.self, matching: matching) { _, _ in }
+        let dot = try #require(URL(string: "https://localhost/v1.0/123"))
+        let impostor = try #require(URL(string: "https://localhost/v1X0/123"))
+        #expect(try router.handle(dot))
+        #expect(try router.handle(impostor) == false)
+        #expect(throws: PathwayError.invalidURL) {
+            try PathwayDecoder.shared.decode(DotRoute.self, from: impostor)
+        }
+    }
+
 }

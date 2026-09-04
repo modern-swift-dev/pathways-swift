@@ -58,12 +58,7 @@ extension PathwayPatternProvider {
                         regex += "[^/]+"
                 }
             } else {
-                switch policy {
-                    case .prefix:
-                        regex += component
-                    case .exact:
-                        regex += NSRegularExpression.escapedPattern(for: component)
-                }
+                regex += NSRegularExpression.escapedPattern(for: component)
             }
 
             if index < components.count - 1 {
@@ -75,7 +70,6 @@ extension PathwayPatternProvider {
             regex += "$"
         }
 
-        // swiftlint:disable:next force_try
-        return try! NSRegularExpression(pattern: regex, options: [])
+        return try? NSRegularExpression(pattern: regex, options: [])
     }
 }
