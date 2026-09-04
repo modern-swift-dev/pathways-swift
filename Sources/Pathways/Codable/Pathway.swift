@@ -58,7 +58,10 @@ extension PathwayPatternProvider {
                         regex += "[^/]+"
                 }
             } else {
-                regex += NSRegularExpression.escapedPattern(for: component)
+                guard let literal = component.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) else {
+                    return nil
+                }
+                regex += NSRegularExpression.escapedPattern(for: literal)
             }
 
             if index < components.count - 1 {

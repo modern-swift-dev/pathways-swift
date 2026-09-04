@@ -96,4 +96,19 @@ struct PathwayRegressionTests {
         #expect(received == "123")
     }
 
+    @Test(arguments: ["a?b", "a#b", "a%20b", "hello world", "a&b=c"])
+    @MainActor func stringRoundTripsPreserveComponentBoundaries(_ value: String) throws {
+        let base = try #require(URL(string: "https://localhost"))
+        let url = try #require(try PathwayEncoder.shared.encode(StringRoute(id: value), relativeTo: base))
+        #expect(try PathwayDecoder.shared.decode(StringRoute.self, from: url).id == value)
+
+        var received: String?
+        var router = Pathways()
+        router.register(host: "localhost", StringRoute.self, matching: .exact) { route, _ in
+            received = route.id
+        }
+        #expect(try router.handle(url))
+        #expect(received == value)
+    }
+
 }

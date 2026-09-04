@@ -39,16 +39,7 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
             return false
         }
 
-        var path = url.path
-        if path.hasPrefix("//") {
-            path = String(path[path.index(after: path.startIndex) ..< path.endIndex])
-        }
-
-        if let fragment = url.fragment, !fragment.isEmpty {
-            if let route = fragment.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first, !route.isEmpty {
-                path = "\(path)/#\(route)"
-            }
-        }
+        let path = url.pathwayMatchingPath
 
         let range = NSRange(path.startIndex ..< path.endIndex, in: path)
         if let regex = T.regex(matching: matching), regex.numberOfMatches(in: path, range: range) == 1 {

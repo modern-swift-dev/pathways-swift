@@ -46,17 +46,11 @@ struct PathwayPathHandler: PathwayHandling {
             return false
         }
 
-        var candidatePath = url.path
-        if candidatePath.hasPrefix("//") {
-            candidatePath = String(candidatePath[candidatePath.index(after: candidatePath.startIndex) ..< candidatePath.endIndex])
-        }
+        let candidatePath = url.pathwayMatchingPath
 
-        if let fragment = url.fragment, !fragment.isEmpty {
-            if let route = fragment.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first, !route.isEmpty {
-                candidatePath = "\(candidatePath)/#\(route)"
-            }
+        guard let path = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
+            return false
         }
-
         return switch matching {
             case .prefix:
                 candidatePath.hasPrefix(path)

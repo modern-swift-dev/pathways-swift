@@ -35,29 +35,18 @@ public final class PathwayDecoder: Sendable {
             throw PathwayError.notDecodable
         }
 
-        var path = from.path
-        if let fragment = from.fragment, !fragment.isEmpty {
-            if let route = fragment.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first, !route.isEmpty {
-                path = "\(path)/#\(route)"
-            }
-        }
-
-        if path.hasPrefix("//") {
-            path = String(path[path.index(after: path.startIndex) ..< path.endIndex])
-        }
+        let path = from.pathwayMatchingPath
 
         let range = NSRange(path.startIndex ..< path.endIndex, in: path)
         guard let regex = decodableType.regex, regex.numberOfMatches(in: path, range: range) == 1 else {
             throw PathwayError.invalidURL
         }
 
-        guard let host = from.host,
-              let scheme = from.scheme,
-              let url = URL(string: "\(scheme)://\(host)\(path)") else {
+        guard from.host != nil, from.scheme != nil else {
             throw PathwayError.notDecodable
         }
 
-        let decoder = try PathwayDecoderImpl(pattern: decodableType.pattern, source: url)
+        let decoder = PathwayDecoderImpl(pattern: decodableType.pattern, components: from.pathwayPathComponents)
         return try type.init(from: decoder)
     }
 }
@@ -78,48 +67,17 @@ private class PathwayDecoderImpl: Decoder {
     /// The User Info dictionary
     var userInfo: [CodingUserInfoKey: Any] = [:]
 
-    /// The source URL
-    let source: URL
+    /// Placeholder positions in the normalized path.
+    let componentsByIndex: [(index: Int, name: String)]
 
-    /// The pattern itself
+    let components: [String]
     let pattern: String
 
-    /// The components by index, extreacted from the pattern
-    var componentsByIndex: [(index: Int, name: String)] = []
-
-    /// The components, excluding the `1st slash`
-    lazy var components: [String] = {
-        var components = source.pathComponents
-        if components.first == "/" {
-            components = Array(components.dropFirst())
-        }
-
-        if let fragment = source.fragment, var urlComponents = URLComponents(url: source, resolvingAgainstBaseURL: false) {
-            urlComponents.path = "/#" + fragment
-            urlComponents.fragment = nil
-
-            if var fragmentComponents = urlComponents.url?.pathComponents {
-                if fragmentComponents.first == "/" {
-                    fragmentComponents = Array(fragmentComponents.dropFirst())
-                }
-                components.append(contentsOf: fragmentComponents)
-            }
-        }
-
-        return components
-    }()
-
-    /// Initializer
-    ///
-    /// - parameter pattern: The pattern, ex: `/user/:id`
-    /// - parameter source: The URL to decode
-    init(pattern: String, source: URL) throws {
+    init(pattern: String, components: [String]) {
         self.pattern = pattern
-        self.source = source
-
-        let components = pattern.split(separator: "/").map { String($0) }
-        for (index, component) in components.enumerated() where component.hasPrefix(":") {
-            componentsByIndex.append((index: index, name: String(component.dropFirst())))
+        self.components = components
+        componentsByIndex = pattern.split(separator: "/").enumerated().compactMap { index, component in
+            component.hasPrefix(":") ? (index: index, name: String(component.dropFirst())) : nil
         }
     }
 
@@ -137,24 +95,22 @@ private class PathwayDecoderImpl: Decoder {
 
     /// A method that can decode any lossless string convertible
     func rawDecode<T: LosslessStringConvertible>(for key: any CodingKey) throws -> T {
-        guard pattern.contains(":\(key.stringValue)") else {
-            throw PathwayError.notFound
-        }
-
-        guard let tuple = componentsByIndex.first(where: { $0.name == key.stringValue }) else {
-            throw PathwayError.notFound
-        }
-
-        guard components.indices.contains(tuple.index), !components[tuple.index].isEmpty else {
-            throw PathwayError.notFound
-        }
-        let pathComponent = components[tuple.index]
+        let pathComponent = try component(for: key)
         guard let value = T(pathComponent) else {
             throw PathwayError.notDecodable
         }
 
         return value
     }
+
+    func component(for key: any CodingKey) throws -> String {
+        guard let tuple = componentsByIndex.first(where: { $0.name == key.stringValue }),
+              components.indices.contains(tuple.index), !components[tuple.index].isEmpty else {
+            throw PathwayError.notFound
+        }
+        return components[tuple.index]
+    }
+
 }
 
 private class PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
