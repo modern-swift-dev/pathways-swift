@@ -70,4 +70,30 @@ struct PathwayRegressionTests {
         }
     }
 
+    private struct FragmentRoute: Pathway {
+        static let pattern = "/callback/#complete/:id"
+        let id: String
+    }
+
+    @Test(arguments: ["/user//type/a", "/user/1/type/", "/user/1/type"]) func missingComponentsThrow(_ path: String) throws {
+        let url = try #require(URL(string: "https://localhost" + path))
+        #expect(throws: (any Error).self) {
+            try PathwayDecoder.shared.decode(TestMultiFieldPathway.self, from: url)
+        }
+    }
+
+    @Test(arguments: [PathwayMatchPolicy.prefix, .exact])
+    @MainActor func typedFragmentPreservesValuesAndParameters(_ matching: PathwayMatchPolicy) throws {
+        let url = try #require(URL(string: "https://localhost/callback#complete/123?token=abc"))
+        #expect(try PathwayDecoder.shared.decode(FragmentRoute.self, from: url).id == "123")
+        var router = Pathways()
+        var received: String?
+        router.register(host: "localhost", FragmentRoute.self, matching: matching, supportFragmentParams: true) { route, parameters in
+            received = route.id
+            #expect(parameters == ["token": "abc"])
+        }
+        #expect(try router.handle(url))
+        #expect(received == "123")
+    }
+
 }

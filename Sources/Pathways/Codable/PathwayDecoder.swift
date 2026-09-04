@@ -95,8 +95,7 @@ private class PathwayDecoderImpl: Decoder {
         }
 
         if let fragment = source.fragment, var urlComponents = URLComponents(url: source, resolvingAgainstBaseURL: false) {
-            components.append("#")
-            urlComponents.path = fragment
+            urlComponents.path = "/#" + fragment
             urlComponents.fragment = nil
 
             if var fragmentComponents = urlComponents.url?.pathComponents {
@@ -146,6 +145,9 @@ private class PathwayDecoderImpl: Decoder {
             throw PathwayError.notFound
         }
 
+        guard components.indices.contains(tuple.index), !components[tuple.index].isEmpty else {
+            throw PathwayError.notFound
+        }
         let pathComponent = components[tuple.index]
         guard let value = T(pathComponent) else {
             throw PathwayError.notDecodable
