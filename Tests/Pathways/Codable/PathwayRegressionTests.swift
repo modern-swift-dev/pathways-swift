@@ -96,7 +96,7 @@ struct PathwayRegressionTests {
         #expect(received == "123")
     }
 
-    @Test(arguments: ["a?b", "a#b", "a%20b", "hello world", "a&b=c"])
+    @Test(arguments: ["a/b", "a?b", "a#b", "a%20b", "hello world", "é/你好", "a&b=c"])
     @MainActor func stringRoundTripsPreserveComponentBoundaries(_ value: String) throws {
         let base = try #require(URL(string: "https://localhost"))
         let url = try #require(try PathwayEncoder.shared.encode(StringRoute(id: value), relativeTo: base))
@@ -109,6 +109,10 @@ struct PathwayRegressionTests {
         }
         #expect(try router.handle(url))
         #expect(received == value)
+    }
+
+    @Test func slashIsEncodedInsideAPlaceholder() throws {
+        #expect(try PathwayEncoder.shared.encode(StringRoute(id: "a/b")) == "/user/a%2Fb")
     }
 
 }

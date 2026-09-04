@@ -68,7 +68,7 @@ private class PathwayEncoderImpl: Encoder {
 
     func replace(key: String, value: String) throws {
         guard let index = pattern.firstIndex(of: ":\(key)"),
-              let value = value.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
+              let value = value.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) else {
             throw PathwayError.notEncodable
         }
 
