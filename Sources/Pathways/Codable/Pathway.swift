@@ -39,40 +39,99 @@ public protocol PathwayEncodable: Encodable, PathwayPatternProvider {}
 ///   unkeyed containers are unsupported.
 public protocol Pathway: PathwayDecodable, PathwayEncodable {}
 
-extension PathwayPatternProvider {
-
-    static var regex: NSRegularExpression? {
-        regex(matching: .prefix)
+/// Matches a canonically percent-encoded path without compiling a regular expression.
+struct PathwayMatcher: Sendable {
+    private enum Component: Sendable {
+        case literal(String)
+        case placeholder
     }
 
-    static func regex(matching policy: PathwayMatchPolicy) -> NSRegularExpression? {
-        var regex = "^"
-        regex += NSRegularExpression.escapedPattern(for: "/")
-        let components = pattern.split(separator: "/").map { String($0) }
-        for (index, component) in components.enumerated() {
+    private enum Strategy: Sendable {
+        case prefix([String])
+        case exact([Component])
+        case invalid
+    }
+
+    private let strategy: Strategy
+
+    init(pattern: String, matching policy: PathwayMatchPolicy) {
+        var components: [Component] = []
+        for component in pattern.split(separator: "/") {
             if component.hasPrefix(":") {
-                switch policy {
-                    case .prefix:
-                        regex += ".*"
-                    case .exact:
-                        regex += "[^/]+"
-                }
+                components.append(.placeholder)
+            } else if let literal = component.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) {
+                components.append(.literal(literal))
             } else {
-                guard let literal = component.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) else {
-                    return nil
+                strategy = .invalid
+                return
+            }
+        }
+
+        switch policy {
+            case .prefix:
+                var literals: [String] = []
+                var literal = "/"
+                for (index, component) in components.enumerated() {
+                    if index > 0 {
+                        literal += "/"
+                    }
+                    switch component {
+                        case let .literal(value):
+                            literal += value
+                        case .placeholder:
+                            literals.append(literal)
+                            literal = ""
+                    }
                 }
-                regex += NSRegularExpression.escapedPattern(for: literal)
-            }
-
-            if index < components.count - 1 {
-                regex += NSRegularExpression.escapedPattern(for: "/")
-            }
+                literals.append(literal)
+                strategy = .prefix(literals)
+            case .exact:
+                strategy = .exact(components)
         }
+    }
 
-        if case .exact = policy {
-            regex += "$"
+    func matches(_ normalizedPath: String) -> Bool {
+        switch strategy {
+            case let .prefix(literals):
+                guard let first = literals.first, normalizedPath.hasPrefix(first) else {
+                    return false
+                }
+                var position = normalizedPath.index(normalizedPath.startIndex, offsetBy: first.count)
+                // A wildcard may consume any number of components. Choosing the
+                // earliest next literal leaves the most input for later literals.
+                for literal in literals.dropFirst() where !literal.isEmpty {
+                    guard let range = normalizedPath.range(of: literal, options: .literal, range: position ..< normalizedPath.endIndex) else {
+                        return false
+                    }
+                    position = range.upperBound
+                }
+                return true
+            case let .exact(components):
+                guard normalizedPath.hasPrefix("/") else {
+                    return false
+                }
+                if components.isEmpty {
+                    return normalizedPath == "/"
+                }
+                let values = normalizedPath.dropFirst().split(separator: "/", maxSplits: components.count, omittingEmptySubsequences: false)
+                guard values.count == components.count else {
+                    return false
+                }
+                for (component, value) in zip(components, values) {
+                    switch component {
+                        case let .literal(literal):
+                            guard value == literal else {
+                                return false
+                            }
+                        case .placeholder:
+                            guard !value.isEmpty else {
+                                return false
+                            }
+                    }
+                }
+                return true
+            case .invalid:
+                return false
         }
-
-        return try? NSRegularExpression(pattern: regex, options: [])
     }
 }

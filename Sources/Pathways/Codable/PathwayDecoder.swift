@@ -38,8 +38,7 @@ public final class PathwayDecoder: Sendable {
         let components = from.pathwayPathComponents
         let path = components.pathwayMatchingPath
 
-        let range = NSRange(path.startIndex ..< path.endIndex, in: path)
-        guard let regex = decodableType.regex, regex.numberOfMatches(in: path, range: range) == 1 else {
+        guard PathwayMatcher(pattern: decodableType.pattern, matching: .prefix).matches(path) else {
             throw PathwayError.invalidURL
         }
 

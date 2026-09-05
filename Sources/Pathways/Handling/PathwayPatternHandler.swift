@@ -39,12 +39,7 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
             return false
         }
 
-        let range = NSRange(path.startIndex ..< path.endIndex, in: path)
-        if let regex = T.regex(matching: matching), regex.numberOfMatches(in: path, range: range) == 1 {
-            return true
-        }
-
-        return false
+        return PathwayMatcher(pattern: T.pattern, matching: matching).matches(path)
     }
 
     /// Handle the URL using the callback. Throwing if the url could not be succesfully decoded
