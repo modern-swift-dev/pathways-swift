@@ -222,10 +222,8 @@ public struct Pathways: PathwaysProviding {
     ///   order as a precedence mechanism.
     @MainActor public func handle(_ url: URL) throws -> Bool {
 
-        var registeredHosts = Set(registeredHosts())
-        registeredHosts.insert(baseHost)
-
-        guard let host = url.host, registeredHosts.contains(host) else {
+        guard let host = url.host,
+              host == baseHost || handlers.contains(where: { $0.host == host }) else {
             return false
         }
 
