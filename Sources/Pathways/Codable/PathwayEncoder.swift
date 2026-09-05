@@ -25,7 +25,8 @@ public final class PathwayEncoder: Sendable {
     ///   ``PathwayPatternProvider``.
     /// - Returns: A percent-encoded path beginning with `/`.
     /// - Throws: ``PathwayError/notEncodable`` when `value` does not
-    ///   provide a compatible pattern or cannot be represented by it, or
+    ///   provide a compatible pattern, leaves a placeholder unfilled (including
+    ///   an omitted optional value), or cannot be represented by it; throws
     ///   ``PathwayError/unsupported`` for nested or unkeyed containers.
     public func encode(_ value: some Encodable) throws -> String {
         guard let encodableType = value as? (any PathwayPatternProvider) else {
@@ -45,7 +46,8 @@ public final class PathwayEncoder: Sendable {
     ///   - relativeTo: The base URL used to resolve the encoded path.
     /// - Returns: The resolved URL, or `nil` when Foundation cannot construct it.
     /// - Throws: ``PathwayError/notEncodable`` when `value` does not
-    ///   provide a compatible pattern or cannot be represented by it, or
+    ///   provide a compatible pattern, leaves a placeholder unfilled (including
+    ///   an omitted optional value), or cannot be represented by it; throws
     ///   ``PathwayError/unsupported`` for nested or unkeyed containers.
     public func encode(_ value: some Encodable, relativeTo: URL) throws -> URL? {
         let path = try encode(value)
@@ -88,6 +90,9 @@ private class PathwayEncoderImpl: Encoder {
         get throws {
             guard !isUnsupported else {
                 throw PathwayError.unsupported
+            }
+            guard placeholderIndices.values.allSatisfy(\.isEmpty) else {
+                throw PathwayError.notEncodable
             }
             return "/\(pattern.joined(separator: "/"))"
         }

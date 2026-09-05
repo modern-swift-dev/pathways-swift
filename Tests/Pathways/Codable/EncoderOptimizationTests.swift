@@ -73,6 +73,52 @@ struct EncoderOptimizationTests {
         #expect(try PathwayEncoder.shared.encode(RepeatedPlaceholderRoute()) == "/1/2")
     }
 
+    private struct OptionalRoute: PathwayEncodable {
+        static let pattern = "/users/:id"
+        let id: String?
+    }
+
+    @Test func omittedOptionalPlaceholderThrowsForBothEncodingOverloads() throws {
+        let route = OptionalRoute(id: nil)
+        let base = try #require(URL(string: "https://localhost"))
+        #expect(throws: PathwayError.notEncodable) {
+            try PathwayEncoder.shared.encode(route)
+        }
+        #expect(throws: PathwayError.notEncodable) {
+            try PathwayEncoder.shared.encode(route, relativeTo: base)
+        }
+    }
+
+    @Test(arguments: ["123", ":id"]) func suppliedOptionalPlaceholderStillEncodes(_ id: String) throws {
+        #expect(try PathwayEncoder.shared.encode(OptionalRoute(id: id)) == "/users/\(id)")
+    }
+
+    private struct PartiallyFilledRoute: PathwayEncodable {
+        static let pattern = "/:value/:value"
+        let value = "first"
+    }
+
+    @Test func everyRepeatedPlaceholderMustBeFilled() throws {
+        #expect(throws: PathwayError.notEncodable) {
+            try PathwayEncoder.shared.encode(PartiallyFilledRoute())
+        }
+    }
+
+    private struct MissingKeyRoute: PathwayEncodable {
+        static let pattern = "/users/:id"
+    }
+
+    private struct LiteralRoute: PathwayEncodable {
+        static let pattern = "/users"
+    }
+
+    @Test func missingKeyThrowsButLiteralOnlyPatternEncodes() throws {
+        #expect(throws: PathwayError.notEncodable) {
+            try PathwayEncoder.shared.encode(MissingKeyRoute())
+        }
+        #expect(try PathwayEncoder.shared.encode(LiteralRoute()) == "/users")
+    }
+
     private struct ArrayRoute: PathwayEncodable {
         static let pattern = "/:values"
         let values: [Int]
