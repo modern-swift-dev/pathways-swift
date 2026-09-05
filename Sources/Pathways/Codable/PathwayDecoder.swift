@@ -65,7 +65,7 @@ extension PathwayDecoder: TopLevelDecoder {
 #endif
 
 /// Internal implementation of the decoder, that actually does the parsing, and validations
-private class PathwayDecoderImpl: Decoder {
+private final class PathwayDecoderImpl: Decoder {
 
     /// The coding path
     var codingPath: [any CodingKey] = []
@@ -117,13 +117,13 @@ private class PathwayDecoderImpl: Decoder {
 
 }
 
-private class PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
+private struct PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
     var codingPath: [any CodingKey] {
         get {
             parent.codingPath
         }
 
-        set {
+        nonmutating set {
             parent.codingPath = newValue
         }
     }
@@ -152,102 +152,60 @@ private class PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContai
         return false
     }
 
-    func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: Bool.Type, forKey key: Key) throws -> Bool {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: String.Type, forKey key: Key) throws -> String {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: String.Type, forKey key: Key) throws -> String {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: Double.Type, forKey key: Key) throws -> Double {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: Float.Type, forKey key: Key) throws -> Float {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: Float.Type, forKey key: Key) throws -> Float {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: Int.Type, forKey key: Key) throws -> Int {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: Int.Type, forKey key: Key) throws -> Int {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: Int8.Type, forKey key: Key) throws -> Int8 {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: Int16.Type, forKey key: Key) throws -> Int16 {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: Int32.Type, forKey key: Key) throws -> Int32 {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: Int64.Type, forKey key: Key) throws -> Int64 {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: UInt.Type, forKey key: Key) throws -> UInt {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: UInt8.Type, forKey key: Key) throws -> UInt8 {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: UInt16.Type, forKey key: Key) throws -> UInt16 {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: UInt32.Type, forKey key: Key) throws -> UInt32 {
+        try parent.rawDecode(for: key)
     }
 
-    func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
-        codingPath.append(key)
-        defer { codingPath.removeLast() }
-
-        return try type.init(from: parent)
+    func decode(_: UInt64.Type, forKey key: Key) throws -> UInt64 {
+        try parent.rawDecode(for: key)
     }
 
     func decode<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T {
@@ -283,14 +241,14 @@ private class PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContai
     }
 }
 
-private class PathwaySingleValueDecodingContainer: SingleValueDecodingContainer {
+private struct PathwaySingleValueDecodingContainer: SingleValueDecodingContainer {
 
     var codingPath: [any CodingKey] {
         get {
             parent.codingPath
         }
 
-        set {
+        nonmutating set {
             parent.codingPath = newValue
         }
     }
