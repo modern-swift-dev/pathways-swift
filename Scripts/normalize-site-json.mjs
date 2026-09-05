@@ -31,7 +31,7 @@ function sorted(value) {
 /** @param {string} directory */
 async function normalizeDirectory(directory) {
     const entries = await readdir(directory, { withFileTypes: true });
-    await Promise.all(entries.map(async (entry) => {
+    for (const entry of entries) {
         const path = resolve(directory, entry.name);
         if (entry.isDirectory()) {
             await normalizeDirectory(path);
@@ -39,7 +39,7 @@ async function normalizeDirectory(directory) {
             const value = JSON.parse(await readFile(path, "utf8"));
             await writeFile(path, `${JSON.stringify(sorted(value))}\n`, "utf8");
         }
-    }));
+    }
 }
 
 await normalizeDirectory(resolve(rootArgument));
