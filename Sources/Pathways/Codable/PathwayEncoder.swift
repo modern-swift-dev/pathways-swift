@@ -65,13 +65,15 @@ private class PathwayEncoderImpl: Encoder {
     var userInfo: [CodingUserInfoKey: Any] = [:]
 
     private var pattern: [String]
+    private var placeholderIndices: [String: [Int]] = [:]
 
     func replace(key: String, value: String) throws {
-        guard let index = pattern.firstIndex(of: ":\(key)"),
+        guard let index = placeholderIndices[key]?.last,
               let value = value.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) else {
             throw PathwayError.notEncodable
         }
 
+        placeholderIndices[key]?.removeLast()
         pattern[index] = value
     }
 
@@ -81,6 +83,14 @@ private class PathwayEncoderImpl: Encoder {
 
     init(pattern: String) {
         self.pattern = pattern.split(separator: "/").map { String($0) }
+        // Reverse order lets each encoded key consume its first remaining
+        // placeholder in constant time without searching substituted values.
+        for index in self.pattern.indices.reversed() {
+            let component = self.pattern[index]
+            if component.hasPrefix(":") {
+                placeholderIndices[String(component.dropFirst()), default: []].append(index)
+            }
+        }
     }
 
     func container<Key: CodingKey>(keyedBy _: Key.Type) -> KeyedEncodingContainer<Key> {

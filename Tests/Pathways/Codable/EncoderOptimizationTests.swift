@@ -41,4 +41,36 @@ struct EncoderOptimizationTests {
     @Test func siblingsAndErrorsDoNotAccumulateCodingPaths() throws {
         #expect(try PathwayEncoder.shared.encode(InspectedRoute()) == "/42/first/second")
     }
+
+    private struct PlaceholderValueRoute: PathwayEncodable {
+        static let pattern = "/:first/:second"
+        let first = ":second"
+        let second = "value"
+    }
+
+    @Test func encodedValuesAreNotTreatedAsPlaceholders() throws {
+        #expect(try PathwayEncoder.shared.encode(PlaceholderValueRoute()) == "/:second/value")
+    }
+
+    private struct RepeatedPlaceholderRoute: PathwayEncodable {
+        static let pattern = "/:value/:value"
+
+        enum CodingKeys: String, CodingKey {
+            case value
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(1, forKey: .value)
+            try container.encode(2, forKey: .value)
+            #expect(throws: PathwayError.notEncodable) {
+                try container.encode(3, forKey: .value)
+            }
+        }
+    }
+
+    @Test func repeatedPlaceholdersAreConsumedInPatternOrder() throws {
+        #expect(try PathwayEncoder.shared.encode(RepeatedPlaceholderRoute()) == "/1/2")
+    }
+
 }
