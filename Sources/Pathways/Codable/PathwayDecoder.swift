@@ -250,7 +250,7 @@ private class PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContai
 
         if T.self == Date.self {
             let component = try parent.component(for: key)
-            guard let date = ISO8601DateFormatter.noFractionalSeconds.date(from: component) as? T else {
+            guard let date = ISO8601DateFormatter.pathwayDate(from: component) as? T else {
                 throw PathwayError.notDecodable
             }
             return date

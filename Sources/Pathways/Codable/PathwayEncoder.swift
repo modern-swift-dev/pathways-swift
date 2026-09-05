@@ -286,7 +286,7 @@ private struct PathwayKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingConta
         }
 
         if let value = value as? Date {
-            try ISO8601DateFormatter.noFractionalSeconds.string(from: value).encode(to: parent)
+            try ISO8601DateFormatter.pathwayString(from: value).encode(to: parent)
             return
         }
 
