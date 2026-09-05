@@ -96,13 +96,13 @@ private class PathwayEncoderImpl: Encoder {
     }
 }
 
-private class PathwaySingleValueEncodingContainer: SingleValueEncodingContainer {
+private struct PathwaySingleValueEncodingContainer: SingleValueEncodingContainer {
     var codingPath: [any CodingKey] {
         get {
             parent.codingPath
         }
 
-        set {
+        nonmutating set {
             parent.codingPath = newValue
         }
     }
@@ -185,13 +185,13 @@ private class PathwaySingleValueEncodingContainer: SingleValueEncodingContainer 
     }
 }
 
-private class PathwayKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingContainerProtocol {
+private struct PathwayKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingContainerProtocol {
     var codingPath: [any CodingKey] {
         get {
             parent.codingPath
         }
 
-        set {
+        nonmutating set {
             parent.codingPath = newValue
         }
     }
@@ -211,91 +211,64 @@ private class PathwayKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingContai
     }
 
     func encode(_ value: Bool, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: String, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: Double, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: Float, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: Int, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: Int8, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: Int16, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: Int32, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: Int64, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: UInt, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: UInt8, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: UInt16, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: UInt32, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: UInt64, forKey key: Key) throws {
-        codingPath.append(key)
-
-        try value.encode(to: parent)
+        try rawEncode(value: value, key: key)
     }
 
     func encode(_ value: some Encodable, forKey key: Key) throws {
         codingPath.append(key)
+        defer { codingPath.removeLast() }
 
         if let value = value as? UUID {
             try value.uuidString.encode(to: parent)
