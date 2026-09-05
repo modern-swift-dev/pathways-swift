@@ -72,16 +72,22 @@ private final class PathwayDecoderImpl: Decoder {
     /// The User Info dictionary
     var userInfo: [CodingUserInfoKey: Any] = [:]
 
-    /// Placeholder positions in the normalized path.
-    let componentsByIndex: [(index: Int, name: String)]
+    /// Keep the first value for each placeholder, matching duplicate-key behavior.
+    private let componentsByKey: [String: String]
 
-    let components: [String]
+    func keys<Key: CodingKey>(_: Key.Type) -> [Key] {
+        componentsByKey.compactMap { $0.value.isEmpty ? nil : Key(stringValue: $0.key) }
+    }
 
     init(pattern: String, components: [String]) {
-        self.components = components
-        componentsByIndex = pattern.split(separator: "/").enumerated().compactMap { index, component in
-            component.hasPrefix(":") ? (index: index, name: String(component.dropFirst())) : nil
+        var values: [String: String] = [:]
+        for (index, component) in pattern.split(separator: "/").enumerated() where component.hasPrefix(":") {
+            let key = String(component.dropFirst())
+            if values[key] == nil, components.indices.contains(index) {
+                values[key] = components[index]
+            }
         }
+        componentsByKey = values
     }
 
     func container<Key: CodingKey>(keyedBy _: Key.Type) throws -> KeyedDecodingContainer<Key> {
@@ -107,11 +113,10 @@ private final class PathwayDecoderImpl: Decoder {
     }
 
     func component(for key: any CodingKey) throws -> String {
-        guard let tuple = componentsByIndex.first(where: { $0.name == key.stringValue }),
-              components.indices.contains(tuple.index), !components[tuple.index].isEmpty else {
+        guard let value = componentsByKey[key.stringValue], !value.isEmpty else {
             throw PathwayError.notFound
         }
-        return components[tuple.index]
+        return value
     }
 
 }
@@ -128,12 +133,7 @@ private struct PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingConta
     }
 
     var allKeys: [Key] {
-        parent.componentsByIndex.compactMap { tuple in
-            guard parent.components.indices.contains(tuple.index), !parent.components[tuple.index].isEmpty else {
-                return nil
-            }
-            return Key(stringValue: tuple.name)
-        }
+        parent.keys(Key.self)
     }
 
     private let parent: PathwayDecoderImpl
