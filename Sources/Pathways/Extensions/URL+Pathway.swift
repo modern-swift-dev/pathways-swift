@@ -31,7 +31,10 @@ extension URL {
             }
         }
 
-        return components.map { $0.removingPercentEncoding ?? $0 }
+        for index in components.indices {
+            components[index] = components[index].removingPercentEncoding ?? components[index]
+        }
+        return components
     }
 
 }
@@ -39,8 +42,13 @@ extension URL {
 extension [String] {
     /// Canonical escaping lets matching distinguish a separator from an escaped slash.
     var pathwayMatchingPath: String {
-        "/" + map {
-            $0.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) ?? $0
-        }.joined(separator: "/")
+        var path = "/"
+        for (index, component) in enumerated() {
+            if index > 0 {
+                path += "/"
+            }
+            path += component.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) ?? component
+        }
+        return path
     }
 }
