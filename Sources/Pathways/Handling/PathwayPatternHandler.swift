@@ -17,6 +17,8 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
 
     /// The path matching behavior.
     private let matching: PathwayMatchPolicy
+    private let initialPattern: String
+    private let initialMatcher: PathwayMatcher
 
     /// The initializer
     /// - parameter host: If supplied, the host of the URL is validated.
@@ -30,6 +32,8 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
     ) {
         self.host = host
         self.matching = matching
+        initialPattern = T.pattern
+        initialMatcher = PathwayMatcher(pattern: initialPattern, matching: matching)
         self.supportFragmentParams = supportFragmentParams
         self.handler = handler
     }
@@ -39,7 +43,10 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
             return false
         }
 
-        return PathwayMatcher(pattern: T.pattern, matching: matching).matches(path)
+        let pattern = T.pattern
+        // Computed pattern providers may change after registration.
+        let matcher = pattern == initialPattern ? initialMatcher : PathwayMatcher(pattern: pattern, matching: matching)
+        return matcher.matches(path)
     }
 
     /// Handle the URL using the callback. Throwing if the url could not be succesfully decoded

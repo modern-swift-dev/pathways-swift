@@ -12,6 +12,7 @@ struct PathwayPathHandler: PathwayHandling {
 
     /// The path
     private let path: String
+    private let encodedPath: String?
 
     /// The handler
     private let handler: @MainActor @Sendable ([String: String]) -> Void
@@ -36,6 +37,7 @@ struct PathwayPathHandler: PathwayHandling {
     ) {
         self.host = host
         self.path = path
+        encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
         self.matching = matching
         self.supportFragmentParams = supportFragmentParams
         self.handler = handler
@@ -46,7 +48,7 @@ struct PathwayPathHandler: PathwayHandling {
             return false
         }
 
-        guard let path = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
+        guard let path = encodedPath else {
             return false
         }
         return switch matching {
