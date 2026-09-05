@@ -227,8 +227,10 @@ public struct Pathways: PathwaysProviding {
             return false
         }
 
+        let components = url.pathwayPathComponents
+        let path = components.pathwayMatchingPath
         var bestHandler: (any PathwayHandling)?
-        for handler in handlers where handler.canHandle(url) {
+        for handler in handlers where handler.canHandle(host: host, path: path) {
             if let current = bestHandler, current.pattern >= handler.pattern {
                 continue
             }
@@ -236,7 +238,7 @@ public struct Pathways: PathwaysProviding {
         }
 
         if let handler = bestHandler {
-            try handler.handle(url: url)
+            try handler.handle(url: url, components: components)
             return true
         }
         return false

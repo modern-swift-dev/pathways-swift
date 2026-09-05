@@ -10,8 +10,8 @@ protocol PathwayHandling: Sendable {
     var host: String? { get }
 
     /// Return true if the url is supported by this handler
-    func canHandle(_ url: URL) -> Bool
+    func canHandle(host: String, path: String) -> Bool
 
     /// Execute the logic of the handler
-    @MainActor func handle(url: URL) throws
+    @MainActor func handle(url: URL, components: [String]) throws
 }

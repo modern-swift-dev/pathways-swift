@@ -34,12 +34,10 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
         self.handler = handler
     }
 
-    func canHandle(_ url: URL) -> Bool {
-        if let host, url.host != host {
+    func canHandle(host candidateHost: String, path: String) -> Bool {
+        if let host, candidateHost != host {
             return false
         }
-
-        let path = url.pathwayMatchingPath
 
         let range = NSRange(path.startIndex ..< path.endIndex, in: path)
         if let regex = T.regex(matching: matching), regex.numberOfMatches(in: path, range: range) == 1 {
@@ -50,8 +48,8 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
     }
 
     /// Handle the URL using the callback. Throwing if the url could not be succesfully decoded
-    @MainActor func handle(url: URL) throws {
-        let result = try PathwayDecoder.shared.decode(T.self, from: url)
+    @MainActor func handle(url: URL, components: [String]) throws {
+        let result = try PathwayDecoder.shared.decodeMatched(T.self, from: url, pattern: T.pattern, components: components)
         handler(result, supportFragmentParams ? url.allParams.asDictionary : url.queryParams.asDictionary)
     }
 }

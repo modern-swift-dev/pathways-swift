@@ -35,18 +35,24 @@ public final class PathwayDecoder: Sendable {
             throw PathwayError.notDecodable
         }
 
-        let path = from.pathwayMatchingPath
+        let components = from.pathwayPathComponents
+        let path = components.pathwayMatchingPath
 
         let range = NSRange(path.startIndex ..< path.endIndex, in: path)
         guard let regex = decodableType.regex, regex.numberOfMatches(in: path, range: range) == 1 else {
             throw PathwayError.invalidURL
         }
 
+        return try decodeMatched(type, from: from, pattern: decodableType.pattern, components: components)
+    }
+
+    /// The router has already validated the pattern against these components.
+    func decodeMatched<T: Decodable>(_ type: T.Type, from: URL, pattern: String, components: [String]) throws -> T {
         guard from.host != nil, from.scheme != nil else {
             throw PathwayError.notDecodable
         }
 
-        let decoder = PathwayDecoderImpl(pattern: decodableType.pattern, components: from.pathwayPathComponents)
+        let decoder = PathwayDecoderImpl(pattern: pattern, components: components)
         return try type.init(from: decoder)
     }
 }

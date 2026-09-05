@@ -34,9 +34,12 @@ extension URL {
         return components.map { $0.removingPercentEncoding ?? $0 }
     }
 
+}
+
+extension [String] {
     /// Canonical escaping lets matching distinguish a separator from an escaped slash.
     var pathwayMatchingPath: String {
-        "/" + pathwayPathComponents.map {
+        "/" + map {
             $0.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) ?? $0
         }.joined(separator: "/")
     }

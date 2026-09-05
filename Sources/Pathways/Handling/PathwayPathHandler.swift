@@ -41,12 +41,10 @@ struct PathwayPathHandler: PathwayHandling {
         self.handler = handler
     }
 
-    func canHandle(_ url: URL) -> Bool {
-        if let host, url.host != host {
+    func canHandle(host candidateHost: String, path candidatePath: String) -> Bool {
+        if let host, candidateHost != host {
             return false
         }
-
-        let candidatePath = url.pathwayMatchingPath
 
         guard let path = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
             return false
@@ -60,7 +58,7 @@ struct PathwayPathHandler: PathwayHandling {
     }
 
     /// Handle the URL using the callback.
-    @MainActor func handle(url: URL) throws {
+    @MainActor func handle(url: URL, components _: [String]) throws {
         handler(supportFragmentParams ? url.allParams.asDictionary : url.queryParams.asDictionary)
     }
 }
