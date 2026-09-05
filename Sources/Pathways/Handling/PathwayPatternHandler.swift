@@ -45,6 +45,6 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
     /// Handle the URL using the callback. Throwing if the url could not be succesfully decoded
     @MainActor func handle(url: URL, components: [String]) throws {
         let result = try PathwayDecoder.shared.decodeMatched(T.self, from: url, pattern: T.pattern, components: components)
-        handler(result, supportFragmentParams ? url.allParams.asDictionary : url.queryParams.asDictionary)
+        handler(result, url.pathwayParameters(supportFragmentParams: supportFragmentParams))
     }
 }

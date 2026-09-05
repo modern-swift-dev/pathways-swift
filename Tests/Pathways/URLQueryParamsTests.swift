@@ -52,4 +52,35 @@ import Testing
             "encoded&key": "value"
         ])
     }
+
+    @Test(arguments: [false, true]) func consolidatedParametersPreserveDuplicatesAndNilDeletion(_ supportFragmentParams: Bool) throws {
+        let url =
+            try #require(
+                URL(
+                    string: "https://example.com/path?duplicate=first&duplicate=last&deleted=value&deleted&empty=&token=query#section?token=fragment&duplicate=fragmentFirst&duplicate=fragmentLast&empty=&=ignored&missing&too=many=parts"
+                )
+            )
+        let expected = supportFragmentParams
+            ? ["duplicate": "fragmentLast", "empty": "", "token": "fragment"]
+            : ["duplicate": "last", "empty": "", "token": "query"]
+        #expect(url.pathwayParameters(supportFragmentParams: supportFragmentParams) == expected)
+        #expect(url.pathwayParameters(supportFragmentParams: supportFragmentParams) == (supportFragmentParams ? url.allParams : url.queryParams).asDictionary)
+    }
+
+    @Test func consolidatedParametersPreserveEncodedSeparators() throws {
+        let url = try #require(URL(string: "https://example.com/path?query=a%26b%3Dc#section?encoded%26key=a%3Db%26c&literal=a%2520b&question=a%3Fb"))
+        #expect(url.pathwayParameters(supportFragmentParams: true) == [
+            "query": "a&b=c",
+            "encoded&key": "a=b&c",
+            "literal": "a%20b",
+            "question": "a?b"
+        ])
+    }
+
+    @Test(arguments: ["https://example.com/path", "https://example.com/path?#section?", "https://example.com/path#section"]) func consolidatedParametersHandleEmptyQueries(_ address: String) throws {
+        let url = try #require(URL(string: address))
+        #expect(url.pathwayParameters(supportFragmentParams: true).isEmpty)
+        #expect(url.pathwayParameters(supportFragmentParams: false).isEmpty)
+    }
+
 }

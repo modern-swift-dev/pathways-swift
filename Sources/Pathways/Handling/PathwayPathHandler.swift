@@ -59,6 +59,6 @@ struct PathwayPathHandler: PathwayHandling {
 
     /// Handle the URL using the callback.
     @MainActor func handle(url: URL, components _: [String]) throws {
-        handler(supportFragmentParams ? url.allParams.asDictionary : url.queryParams.asDictionary)
+        handler(url.pathwayParameters(supportFragmentParams: supportFragmentParams))
     }
 }
