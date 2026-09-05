@@ -25,7 +25,8 @@ public final class PathwayEncoder: Sendable {
     ///   ``PathwayPatternProvider``.
     /// - Returns: A percent-encoded path beginning with `/`.
     /// - Throws: ``PathwayError/notEncodable`` when `value` does not
-    ///   provide a compatible pattern or cannot be represented by it.
+    ///   provide a compatible pattern or cannot be represented by it, or
+    ///   ``PathwayError/unsupported`` for nested or unkeyed containers.
     public func encode(_ value: some Encodable) throws -> String {
         guard let encodableType = value as? (any PathwayPatternProvider) else {
             throw PathwayError.notEncodable
@@ -33,7 +34,7 @@ public final class PathwayEncoder: Sendable {
 
         let encoder = PathwayEncoderImpl(pattern: type(of: encodableType).pattern)
         try value.encode(to: encoder)
-        return encoder.result
+        return try encoder.result
     }
 
     /// Encodes a value as a URL relative to a base URL.
@@ -44,7 +45,8 @@ public final class PathwayEncoder: Sendable {
     ///   - relativeTo: The base URL used to resolve the encoded path.
     /// - Returns: The resolved URL, or `nil` when Foundation cannot construct it.
     /// - Throws: ``PathwayError/notEncodable`` when `value` does not
-    ///   provide a compatible pattern or cannot be represented by it.
+    ///   provide a compatible pattern or cannot be represented by it, or
+    ///   ``PathwayError/unsupported`` for nested or unkeyed containers.
     public func encode(_ value: some Encodable, relativeTo: URL) throws -> URL? {
         let path = try encode(value)
         return URL(string: path, relativeTo: relativeTo)
@@ -64,10 +66,15 @@ private class PathwayEncoderImpl: Encoder {
 
     var userInfo: [CodingUserInfoKey: Any] = [:]
 
+    var isUnsupported = false
+
     private var pattern: [String]
     private var placeholderIndices: [String: [Int]] = [:]
 
     func replace(key: String, value: String) throws {
+        guard !isUnsupported else {
+            throw PathwayError.unsupported
+        }
         guard let index = placeholderIndices[key]?.last,
               let value = value.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) else {
             throw PathwayError.notEncodable
@@ -78,7 +85,12 @@ private class PathwayEncoderImpl: Encoder {
     }
 
     var result: String {
-        "/\(pattern.joined(separator: "/"))"
+        get throws {
+            guard !isUnsupported else {
+                throw PathwayError.unsupported
+            }
+            return "/\(pattern.joined(separator: "/"))"
+        }
     }
 
     init(pattern: String) {
@@ -94,11 +106,15 @@ private class PathwayEncoderImpl: Encoder {
     }
 
     func container<Key: CodingKey>(keyedBy _: Key.Type) -> KeyedEncodingContainer<Key> {
-        KeyedEncodingContainer(PathwayKeyedEncodingContainer(parent: self))
+        if !codingPath.isEmpty {
+            isUnsupported = true
+        }
+        return KeyedEncodingContainer(PathwayKeyedEncodingContainer(parent: self))
     }
 
     func unkeyedContainer() -> any UnkeyedEncodingContainer {
-        fatalError("Unsupported")
+        isUnsupported = true
+        return UnsupportedUnkeyedEncodingContainer(parent: self)
     }
 
     func singleValueContainer() -> any SingleValueEncodingContainer {
@@ -124,6 +140,9 @@ private struct PathwaySingleValueEncodingContainer: SingleValueEncodingContainer
     }
 
     private func rawEncode(_ value: some LosslessStringConvertible) throws {
+        guard !parent.isUnsupported else {
+            throw PathwayError.unsupported
+        }
         guard let key = codingPath.last else {
             throw PathwayError.notFound
         }
@@ -294,19 +313,53 @@ private struct PathwayKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingConta
     }
 
     func nestedContainer<NestedKey: CodingKey>(keyedBy _: NestedKey.Type, forKey _: Key) -> KeyedEncodingContainer<NestedKey> {
-        fatalError("unsupported")
+        parent.isUnsupported = true
+        return parent.container(keyedBy: NestedKey.self)
     }
 
     func nestedUnkeyedContainer(forKey _: Key) -> any UnkeyedEncodingContainer {
-        fatalError("unsupported")
+        parent.unkeyedContainer()
     }
 
     func superEncoder() -> any Encoder {
-        fatalError("unsupported")
+        parent.isUnsupported = true
+        return parent
     }
 
     func superEncoder(forKey _: Key) -> any Encoder {
-        fatalError("unsupported")
+        parent.isUnsupported = true
+        return parent
     }
 
+}
+
+private struct UnsupportedUnkeyedEncodingContainer: UnkeyedEncodingContainer {
+    let parent: PathwayEncoderImpl
+    var codingPath: [any CodingKey] {
+        parent.codingPath
+    }
+
+    var count: Int {
+        0
+    }
+
+    mutating func encodeNil() throws {
+        throw PathwayError.unsupported
+    }
+
+    mutating func encode(_: some Encodable) throws {
+        throw PathwayError.unsupported
+    }
+
+    mutating func nestedContainer<NestedKey: CodingKey>(keyedBy: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> {
+        parent.container(keyedBy: keyedBy)
+    }
+
+    mutating func nestedUnkeyedContainer() -> any UnkeyedEncodingContainer {
+        self
+    }
+
+    mutating func superEncoder() -> any Encoder {
+        parent
+    }
 }
