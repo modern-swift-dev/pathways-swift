@@ -1,5 +1,5 @@
 #if canImport(Combine)
-import Combine
+    import Combine
 #endif
 import Foundation
 
@@ -57,10 +57,10 @@ public final class PathwayDecoder: Sendable {
 }
 
 #if canImport(Combine)
-extension PathwayDecoder: TopLevelDecoder {
-    /// The input type accepted by this top-level decoder.
-    public typealias Input = URL
-}
+    extension PathwayDecoder: TopLevelDecoder {
+        /// The input type accepted by this top-level decoder.
+        public typealias Input = URL
+    }
 #endif
 
 /// Internal implementation of the decoder, that actually does the parsing, and validations

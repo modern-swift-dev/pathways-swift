@@ -1,5 +1,5 @@
 #if canImport(Combine)
-import Combine
+    import Combine
 #endif
 import Foundation
 
@@ -56,10 +56,10 @@ public final class PathwayEncoder: Sendable {
 }
 
 #if canImport(Combine)
-extension PathwayEncoder: TopLevelEncoder {
-    /// The output type produced by this top-level encoder.
-    public typealias Output = String
-}
+    extension PathwayEncoder: TopLevelEncoder {
+        /// The output type produced by this top-level encoder.
+        public typealias Output = String
+    }
 #endif
 
 /// Internal implementation of the encoder, that actually does the parsing, and validations

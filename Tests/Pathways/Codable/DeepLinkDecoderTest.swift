@@ -2,7 +2,6 @@ import Foundation
 import Pathways
 import Testing
 
-// swiftlint:disable force_unwrapping
 @Suite(.serialized) struct PathwayDecoderTests {
 
     @Test func invalidDecoding() throws {
