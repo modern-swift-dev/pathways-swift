@@ -36,10 +36,6 @@ playground.xcworkspace
 
 .DS_Store
 
-# Website build output
-Website/node_modules/
-Website/.astro/
-Website/dist/
 staging/
 
 # Generated documentation is published by modern-swift-dev/docs.
