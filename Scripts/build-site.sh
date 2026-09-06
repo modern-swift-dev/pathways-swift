@@ -5,8 +5,8 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 website_directory="$repository_root/Website"
 website_dist_directory="$website_directory/dist"
-documentation_directory="$repository_root/docs"
-hosting_base_path="pathways-swift/documentation/pathways"
+documentation_directory="$repository_root/.build/site"
+hosting_base_path="docs/pathways-swift/documentation/pathways"
 preview_port="${PORT:-4321}"
 
 mode="build"
@@ -73,7 +73,7 @@ assemble_site() {
     cp "$website_dist_directory/documentation/pathways/index.html" \
         "$output_directory/documentation/pathways/index.html"
 
-    node "$repository_root/Scripts/check-site-links.mjs" "$output_directory" "pathways-swift"
+    node "$repository_root/Scripts/check-site-links.mjs" "$output_directory" "docs/pathways-swift"
 }
 
 case "${1:-}" in
@@ -109,8 +109,8 @@ trap cleanup_staging EXIT
 
 if [[ "$mode" == "preview" ]]; then
     preview_root="$staging_root/preview"
-    assemble_site "$preview_root/pathways-swift"
-    echo "Preview: http://localhost:$preview_port/pathways-swift/"
+    assemble_site "$preview_root/docs/pathways-swift"
+    echo "Preview: http://localhost:$preview_port/docs/pathways-swift/"
     python3 -m http.server "$preview_port" --directory "$preview_root"
     exit 0
 fi
@@ -134,7 +134,7 @@ if ! mv "$assembled_site" "$documentation_directory"; then
     if [[ -e "$backup_directory" ]]; then
         mv "$backup_directory" "$documentation_directory"
     fi
-    echo "Could not replace docs. The previous docs were restored." >&2
+    echo "Could not replace .build/site. The previous site was restored." >&2
     exit 1
 fi
 

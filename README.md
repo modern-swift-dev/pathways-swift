@@ -187,11 +187,13 @@ Each can be run independently with `swift run` from its directory.
 
 ## Documentation
 
-- [Guide](https://modern-swift-dev.github.io/pathways-swift/)
-- [Examples](https://modern-swift-dev.github.io/pathways-swift/examples/)
-- [API documentation](https://modern-swift-dev.github.io/pathways-swift/documentation/pathways/)
+- [Guide](https://modern-swift-dev.github.io/docs/pathways-swift/)
+- [Examples](https://modern-swift-dev.github.io/docs/pathways-swift/examples/)
+- [API documentation](https://modern-swift-dev.github.io/docs/pathways-swift/documentation/pathways/)
 
 ## Contributing
+
+Documentation sources remain in this repository. The [central documentation repository](https://github.com/modern-swift-dev/docs) builds and publishes the site daily. Local site builds write generated HTML to `.build/site/`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development and maintenance instructions.
 

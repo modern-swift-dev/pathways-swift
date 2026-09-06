@@ -3,7 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   site: "https://modern-swift-dev.github.io",
-  base: "/pathways-swift",
+  base: "/docs/pathways-swift",
   output: "static",
   outDir: "./dist",
   vite: {

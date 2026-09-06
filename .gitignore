@@ -41,3 +41,6 @@ Website/node_modules/
 Website/.astro/
 Website/dist/
 staging/
+
+# Generated documentation is published by modern-swift-dev/docs.
+/docs/

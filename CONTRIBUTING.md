@@ -19,17 +19,15 @@ The repository's `Makefile` also provides formatting, linting, and platform-spec
 
 ## Maintainers
 
-The website source lives in `Website/`. Generated documentation is written to `docs/` and committed to the repository.
+The documentation sources remain in this repository. The [central documentation repository](https://github.com/modern-swift-dev/docs) builds and publishes them daily at [the module documentation site](https://modern-swift-dev.github.io/docs/pathways-swift/). Publish a GitHub release to update the release information on the next scheduled build; publishing is configured in the central repository.
 
-To work on the website locally:
+To build and review documentation locally:
 
 ```sh
 make site-setup
-make site-preview
-make site-validate
 make site-build
+make site-validate
+make site-preview
 ```
 
-To publish a release, publish the GitHub release first, then run `make site-build`. Review the rendered latest release and the DocC changes before committing the generated `docs/` directory.
-
-For the one-time GitHub Pages setup, open **Settings > Pages**, choose **Deploy from a branch**, select `main` and `/docs`, then save. See the [GitHub Pages publishing-source guide](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+The build fetches the latest published release, builds the Astro pages and static DocC reference, and checks internal links. Generated HTML is written to `.build/site/` and is ignored by Git. Commit documentation source changes only.
