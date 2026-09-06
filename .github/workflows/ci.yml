@@ -54,15 +54,9 @@ jobs:
           - destination: platform=iOS Simulator,name=iPhone 17 Pro,OS=latest
             simulator_name: iPhone 17 Pro
             runtime_prefix: iOS
-          - destination: platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=latest
-            simulator_name: Apple TV 4K (3rd generation)
-            runtime_prefix: tvOS
           - destination: platform=visionOS Simulator,name=Apple Vision Pro,OS=latest
             simulator_name: Apple Vision Pro
             runtime_prefix: xrOS
-          - destination: platform=watchOS Simulator,name=Apple Watch Series 11 (46mm),OS=latest
-            simulator_name: Apple Watch Series 11 (46mm)
-            runtime_prefix: watchOS
     steps:
       - uses: actions/checkout@v4
       - name: Install xcbeautify
