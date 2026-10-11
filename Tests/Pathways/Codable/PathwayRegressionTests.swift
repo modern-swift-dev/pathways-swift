@@ -19,6 +19,14 @@ struct PathwayRegressionTests {
         #expect(date.timeIntervalSince1970 == 1_788_523_200)
     }
 
+    @Test func fractionalDatesRoundTripThroughRoutes() throws {
+        let date = Date(timeIntervalSince1970: 1.5)
+        let path = try PathwayEncoder.shared.encode(DateRoute(date: date))
+        #expect(path == "/date/1970-01-01T00:00:01.500Z")
+        let url = try #require(URL(string: "https://localhost" + path))
+        #expect(try PathwayDecoder.shared.decode(DateRoute.self, from: url).date == date)
+    }
+
     private struct StringRoute: Pathway {
         static let pattern = "/user/:id"
         let id: String

@@ -138,7 +138,7 @@ struct MemberRoute: Pathway {
 }
 ```
 
-Supported scalar values include strings, booleans, integer and floating-point types, raw-value Codable enums, UUIDs, and ISO 8601 dates. Nested values and collections are not supported.
+Supported scalar values include strings, booleans, integer and floating-point types, raw-value Codable enums, UUIDs, and ISO 8601 dates with millisecond precision. Nested values and collections are not supported.
 
 ## Path-only routing
 
