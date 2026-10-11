@@ -39,4 +39,6 @@ playground.xcworkspace
 staging/
 
 # Generated documentation is published by modern-swift-dev/docs.
-/docs/
+/docs/*
+!/docs/agents/
+!/docs/adr/
