@@ -162,6 +162,14 @@ Exact matching also applies to typed routes. With either policy, each `:` placeh
 
 When several registrations match a URL, the most specific one runs. At the first path component where two patterns differ, a literal beats a `:` placeholder, so `/products/featured` wins over `/products/:productID`. Otherwise the longer pattern wins, then exact matching beats prefix matching, then a host-specific registration beats a hostless one. Equally specific registrations keep the first one registered.
 
+## Hosts and schemes
+
+Hosts are compared case-insensitively. Every scheme is accepted by default; restrict it when the same path must not be reachable through another scheme:
+
+```swift
+router.allowedSchemes = ["https"]
+```
+
 ## Query and fragment parameters
 
 Handler dictionaries contain standard query parameters by default. For URLs that encode a route and parameters in the fragment, opt in per registration:

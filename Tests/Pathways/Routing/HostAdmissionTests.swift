@@ -44,3 +44,33 @@ import Testing
         #expect(try router.handle(#require(URL(string: "https://base.EXAMPLE/target"))))
     }
 }
+
+@MainActor struct SchemeAdmissionTests {
+    @Test func anySchemeIsAcceptedByDefault() throws {
+        var router = Pathways()
+        router.register(host: "example.com", path: "/a") { _ in }
+        #expect(router.allowedSchemes == nil)
+        #expect(try router.handle(#require(URL(string: "ftp://example.com/a"))))
+    }
+
+    @Test(arguments: [
+        ("https://example.com/a", true),
+        ("HTTPS://example.com/a", true),
+        ("http://example.com/a", false),
+        ("ftp://example.com/a", false)
+    ])
+    func allowedSchemesRestrictRouting(address: String, expected: Bool) throws {
+        var router = Pathways()
+        router.allowedSchemes = ["HTTPS"]
+        router.register(host: "example.com", path: "/a") { _ in }
+        #expect(try router.handle(#require(URL(string: address))) == expected)
+    }
+
+    @Test func allowedSchemesApplyThroughProtocol() throws {
+        var router: any PathwaysProviding = Pathways()
+        router.allowedSchemes = ["myapp"]
+        router.register(host: "products", path: "/", matching: .prefix, supportFragmentParams: false) { _ in }
+        #expect(try router.handle(#require(URL(string: "myapp://products/42"))))
+        #expect(try router.handle(#require(URL(string: "https://products/42"))) == false)
+    }
+}

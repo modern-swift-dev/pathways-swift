@@ -13,6 +13,11 @@ public protocol PathwaysProviding: Sendable {
     /// ``handle(_:)`` for hostless registrations.
     var baseHost: String { get set }
 
+    /// The URL schemes accepted by every registration, compared case-insensitively.
+    ///
+    /// `nil` accepts any scheme.
+    var allowedSchemes: Set<String>? { get set }
+
     /// Registers a typed handler without restricting it to a specific host.
     ///
     /// - Parameters:
@@ -116,8 +121,9 @@ public protocol PathwaysProviding: Sendable {
     /// Handles a URL with the best matching registered handler.
     ///
     /// - Parameter url: The incoming URL to route.
-    /// - Returns: `true` if a handler ran; otherwise, `false` when the URL host
-    ///   is not registered or no handler matches.
+    /// - Returns: `true` if a handler ran; otherwise, `false` when the URL
+    ///   scheme is not allowed, the URL host is not registered, or no handler
+    ///   matches.
     /// - Throws: Any error thrown while decoding a matching typed route.
     /// - Important: When several handlers match, Pathways selects the most
     ///   specific one. At the first path component where two patterns differ,

@@ -11,6 +11,12 @@ public struct Pathways: PathwaysProviding {
     /// Set this before handling URLs with hostless registrations.
     public var baseHost: String = ""
 
+    /// The URL schemes accepted by every registration, compared case-insensitively.
+    ///
+    /// The default, `nil`, accepts any scheme. Set this to `["https"]` to
+    /// ignore the same paths delivered through other schemes.
+    public var allowedSchemes: Set<String>?
+
     /// The list of hadnlers
     private var handlers: [any PathwayHandling] = []
 
@@ -214,8 +220,9 @@ public struct Pathways: PathwaysProviding {
     /// Handles a URL with the best matching registered handler.
     ///
     /// - Parameter url: The incoming URL to route.
-    /// - Returns: `true` if a handler ran; otherwise, `false` when the URL host
-    ///   is not registered or no handler matches.
+    /// - Returns: `true` if a handler ran; otherwise, `false` when the URL
+    ///   scheme is not allowed, the URL host is not registered, or no handler
+    ///   matches.
     /// - Throws: Any error thrown while decoding a matching typed route.
     /// - Important: When several handlers match, Pathways selects the most
     ///   specific one. At the first path component where two patterns differ,
@@ -224,6 +231,13 @@ public struct Pathways: PathwaysProviding {
     ///   registration beats a hostless one. Equally specific registrations
     ///   keep the first one registered.
     @MainActor public func handle(_ url: URL) throws -> Bool {
+
+        if let allowedSchemes {
+            guard let scheme = url.scheme?.lowercased(),
+                  allowedSchemes.contains(where: { $0.lowercased() == scheme }) else {
+                return false
+            }
+        }
 
         guard let host = url.host?.lowercased(),
               host == baseHost.lowercased() || handlers.contains(where: { $0.host == host }) else {
