@@ -30,7 +30,8 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
         supportFragmentParams: Bool = false,
         _ handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
     ) {
-        self.host = host
+        // Hosts are case-insensitive.
+        self.host = host?.lowercased()
         self.matching = matching
         initialPattern = T.pattern
         initialMatcher = PathwayMatcher(pattern: initialPattern, matching: matching)

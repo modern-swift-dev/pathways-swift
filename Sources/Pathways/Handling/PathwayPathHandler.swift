@@ -32,7 +32,8 @@ struct PathwayPathHandler: PathwayHandling {
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping ([String: String]) -> Void
     ) {
-        self.host = host
+        // Hosts are case-insensitive.
+        self.host = host?.lowercased()
         self.path = path
         matcher = PathwayMatcher(path: path, matching: matching)
         self.supportFragmentParams = supportFragmentParams

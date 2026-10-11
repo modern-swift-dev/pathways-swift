@@ -20,7 +20,7 @@ public struct Pathways: PathwaysProviding {
     /// Registers a typed handler for one exact host.
     ///
     /// - Parameters:
-    ///   - host: The exact URL host the handler accepts.
+    ///   - host: The URL host the handler accepts, compared case-insensitively.
     ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
     ///     matched and decoded.
     ///   - supportFragmentParams: Whether to merge query items following a
@@ -46,7 +46,7 @@ public struct Pathways: PathwaysProviding {
     /// Registers a typed handler for one exact host.
     ///
     /// - Parameters:
-    ///   - host: The exact URL host the handler accepts.
+    ///   - host: The URL host the handler accepts, compared case-insensitively.
     ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
     ///     matched and decoded.
     ///   - matching: The policy used to match the route.
@@ -118,7 +118,7 @@ public struct Pathways: PathwaysProviding {
     /// Registers a path handler for one exact host.
     ///
     /// - Parameters:
-    ///   - host: The exact URL host the handler accepts.
+    ///   - host: The URL host the handler accepts, compared case-insensitively.
     ///   - path: The path prefix the handler accepts.
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the handler's parameter dictionary.
@@ -142,7 +142,7 @@ public struct Pathways: PathwaysProviding {
     /// Registers a path handler for one exact host.
     ///
     /// - Parameters:
-    ///   - host: The exact URL host the handler accepts.
+    ///   - host: The URL host the handler accepts, compared case-insensitively.
     ///   - path: The path the handler accepts.
     ///   - matching: The policy used to match the path.
     ///   - supportFragmentParams: Whether to merge query items following a
@@ -225,8 +225,8 @@ public struct Pathways: PathwaysProviding {
     ///   keep the first one registered.
     @MainActor public func handle(_ url: URL) throws -> Bool {
 
-        guard let host = url.host,
-              host == baseHost || handlers.contains(where: { $0.host == host }) else {
+        guard let host = url.host?.lowercased(),
+              host == baseHost.lowercased() || handlers.contains(where: { $0.host == host }) else {
             return false
         }
 
@@ -262,7 +262,7 @@ public struct Pathways: PathwaysProviding {
 
     /// Returns the exact hosts declared by host-specific registrations.
     ///
-    /// - Returns: Registered hosts in ascending lexical order. This does not
+    /// - Returns: Registered hosts, lowercased, in ascending lexical order. This does not
     ///   include ``baseHost``.
     public func registeredHosts() -> [String] {
         handlers.compactMap(\.host).sorted()

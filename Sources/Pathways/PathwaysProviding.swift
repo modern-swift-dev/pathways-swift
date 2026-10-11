@@ -33,7 +33,7 @@ public protocol PathwaysProviding: Sendable {
     /// Registers a typed handler for one exact host.
     ///
     /// - Parameters:
-    ///   - host: The exact URL host the handler accepts.
+    ///   - host: The URL host the handler accepts, compared case-insensitively.
     ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
     ///     matched and decoded.
     ///   - supportFragmentParams: Whether to merge query items following a
@@ -66,7 +66,7 @@ public protocol PathwaysProviding: Sendable {
     /// Registers a path-prefix handler for one exact host.
     ///
     /// - Parameters:
-    ///   - host: The exact URL host the handler accepts.
+    ///   - host: The URL host the handler accepts, compared case-insensitively.
     ///   - path: The path prefix the handler accepts.
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the handler's parameter dictionary.
@@ -134,7 +134,7 @@ public protocol PathwaysProviding: Sendable {
 
     /// Returns the exact hosts declared by host-specific registrations.
     ///
-    /// - Returns: Registered hosts in ascending lexical order. This does not
+    /// - Returns: Registered hosts, lowercased, in ascending lexical order. This does not
     ///   include ``baseHost``.
     func registeredHosts() -> [String]
 

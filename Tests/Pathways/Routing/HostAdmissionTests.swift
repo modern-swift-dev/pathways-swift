@@ -27,3 +27,20 @@ import Testing
         #expect(try router.handle(base))
     }
 }
+
+@MainActor struct HostCaseTests {
+    @Test(arguments: ["https://example.com/a", "https://EXAMPLE.com/a", "https://Example.Com/a"])
+    func registeredHostsMatchCaseInsensitively(_ address: String) throws {
+        var router = Pathways()
+        router.register(host: "Example.COM", path: "/a") { _ in }
+        #expect(try router.handle(#require(URL(string: address))))
+        #expect(router.registeredHosts() == ["example.com"])
+    }
+
+    @Test func baseHostMatchesCaseInsensitively() throws {
+        var router = Pathways()
+        router.baseHost = "Base.Example"
+        router.register(path: "/target") { _ in }
+        #expect(try router.handle(#require(URL(string: "https://base.EXAMPLE/target"))))
+    }
+}
