@@ -9,6 +9,7 @@ import Testing
         var received: (route: TestSingleFieldPathway, request: PathwayRequest)?
         router.register(host: "localhost", TestSingleFieldPathway.self) { route, request in
             received = (route, request)
+            return .handled
         }
 
         #expect(try router.handle(url))
@@ -28,6 +29,7 @@ import Testing
         var received: PathwayRequest?
         router.register(path: "/settings") { request in
             received = request
+            return .handled
         }
 
         #expect(try router.handle(url))
@@ -42,6 +44,7 @@ import Testing
         var received: PathwayRequest?
         router.register(host: "localhost", path: "/callback", supportFragmentParams: supportFragmentParams) { request in
             received = request
+            return .handled
         }
 
         #expect(try router.handle(url))
@@ -63,10 +66,22 @@ import Testing
         var router: any PathwaysProviding = PathwayRouter()
         router.baseHost = "localhost"
         var urls: [URL] = []
-        router.register(TestSingleFieldPathway.self, matching: .exact) { _, request in urls.append(request.url) }
-        router.register(host: "localhost", TestMultiFieldPathway.self) { _, request in urls.append(request.url) }
-        router.register(path: "/a", supportFragmentParams: true) { request in urls.append(request.url) }
-        router.register(host: "localhost", path: "/b", matching: .exact) { request in urls.append(request.url) }
+        router.register(TestSingleFieldPathway.self, matching: .exact) { _, request in
+            urls.append(request.url)
+            return .handled
+        }
+        router.register(host: "localhost", TestMultiFieldPathway.self) { _, request in
+            urls.append(request.url)
+            return .handled
+        }
+        router.register(path: "/a", supportFragmentParams: true) { request in
+            urls.append(request.url)
+            return .handled
+        }
+        router.register(host: "localhost", path: "/b", matching: .exact) { request in
+            urls.append(request.url)
+            return .handled
+        }
 
         let addresses = ["https://localhost/user/1", "https://localhost/user/1/type/admin", "https://localhost/a", "https://localhost/b"]
         for address in addresses {

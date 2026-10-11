@@ -183,7 +183,7 @@ router.register(host: "example.com", path: "/settings", matching: .exact) { quer
 
 Exact matching also applies to typed routes. With either policy, each `:` placeholder matches exactly one non-empty path component.
 
-When several registrations match a URL, the most specific one runs. At the first path component where two patterns differ, a literal beats a `:` placeholder, so `/products/featured` wins over `/products/:productID`. Otherwise the longer pattern wins, then exact matching beats prefix matching, then a host-specific registration beats a hostless one. Equally specific registrations keep the first one registered.
+When several registrations match a URL, the most specific one runs. At the first path component where two patterns differ, a literal beats a `:` placeholder, so `/products/featured` wins over `/products/:productID`. Otherwise the longer pattern wins, then exact matching beats prefix matching, then a host-specific registration beats a hostless one. Equally specific registrations keep the first one registered. When the selected handler declines the URL, routing falls through to the next registration in that order.
 
 ## Removing routes
 
@@ -255,21 +255,39 @@ A parameter without a value, such as `?debug`, is delivered as an empty string. 
 
 ### Request handlers
 
-A handler can receive a `PathwayRequest` instead of the parameter dictionary. The request carries the original URL, the same `parameters` dictionary, and the ordered `queryItems`, which keep every value of a repeated name and leave valueless flags with a `nil` value:
+A handler can receive a `PathwayRequest` instead of the parameter dictionary. The request carries the original URL, the same `parameters` dictionary, and the ordered `queryItems`, which keep every value of a repeated name and leave valueless flags with a `nil` value. A request handler returns whether it handled the URL:
 
 ```swift
 router.register(host: "example.com", ProductRoute.self) { route, request in
     analytics.log(opened: request.url)
     let tags = request.queryItems.filter { $0.name == "tag" }.compactMap(\.value)
     navigateToProduct(id: route.productID, tags: tags)
+    return .handled
 }
 
 router.register(host: "example.com", path: "/search") { request in
     search(terms: request.queryItems.filter { $0.name == "q" }.compactMap(\.value))
+    return .handled
 }
 ```
 
 When fragment parameters are enabled for the registration, the fragment's query items follow the standard ones.
+
+### Declining a URL
+
+A request handler can decide at runtime that it cannot handle a URL, for example while a feature flag is off. Return `.declined` and the router tries the next most specific matching registration; return `.handled` to stop:
+
+```swift
+router.register(host: "example.com", path: "/checkout") { request in
+    guard features.isCheckoutEnabled else {
+        return .declined
+    }
+    openCheckout(request.url)
+    return .handled
+}
+```
+
+`handle(_:)` returns `false` when every matching handler declines. Handlers that receive the parameter dictionary don't return a result and always count as handled. Declining is the handler's choice only: a typed route that fails to decode still throws.
 
 ## Examples
 

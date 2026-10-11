@@ -27,7 +27,8 @@ public struct PathwayRouter: PathwaysProviding {
     ///
     /// Prefer the ``PathwaysProviding`` conveniences, which supply defaults
     /// for `host`, `matching`, and `supportFragmentParams`, and also accept
-    /// handlers that receive the parameter dictionary instead of the request.
+    /// handlers that receive the parameter dictionary instead of the request,
+    /// which always handle the URL.
     ///
     /// - Parameters:
     ///   - host: The URL host the handler accepts, compared case-insensitively,
@@ -38,7 +39,8 @@ public struct PathwayRouter: PathwaysProviding {
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the request's parameters and query items.
     ///   - handler: The main-actor closure invoked with the decoded route and
-    ///     the request.
+    ///     the request. Return ``PathwayHandlerResult/declined`` to let the
+    ///     next most specific matching registration handle the URL.
     /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
     ///   this registration.
     /// - Important: A hostless registration can handle URLs whose host equals
@@ -49,7 +51,7 @@ public struct PathwayRouter: PathwaysProviding {
         _: T.Type,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
-        handler: @escaping @MainActor @Sendable (T, PathwayRequest) -> Void
+        handler: @escaping @MainActor @Sendable (T, PathwayRequest) -> PathwayHandlerResult
     ) -> PathwayRegistrationID {
         append(PathwayPatternHandler(
             host: host,
@@ -63,7 +65,8 @@ public struct PathwayRouter: PathwaysProviding {
     ///
     /// Prefer the ``PathwaysProviding`` conveniences, which supply defaults
     /// for `host`, `matching`, and `supportFragmentParams`, and also accept
-    /// handlers that receive the parameter dictionary instead of the request.
+    /// handlers that receive the parameter dictionary instead of the request,
+    /// which always handle the URL.
     ///
     /// - Parameters:
     ///   - host: The URL host the handler accepts, compared case-insensitively,
@@ -72,7 +75,9 @@ public struct PathwayRouter: PathwaysProviding {
     ///   - matching: The policy used to match the path.
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the request's parameters and query items.
-    ///   - handler: The main-actor closure invoked with the request.
+    ///   - handler: The main-actor closure invoked with the request. Return
+    ///     ``PathwayHandlerResult/declined`` to let the next most specific
+    ///     matching registration handle the URL.
     /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
     ///   this registration.
     /// - Important: A hostless registration can handle URLs whose host equals
@@ -83,7 +88,7 @@ public struct PathwayRouter: PathwaysProviding {
         path: String,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
-        handler: @escaping @MainActor @Sendable (PathwayRequest) -> Void
+        handler: @escaping @MainActor @Sendable (PathwayRequest) -> PathwayHandlerResult
     ) -> PathwayRegistrationID {
         append(PathwayPathHandler(
             host: host,
@@ -103,18 +108,21 @@ public struct PathwayRouter: PathwaysProviding {
     /// Handles a URL with the best matching registered handler.
     ///
     /// - Parameter url: The incoming URL to route.
-    /// - Returns: `true` if a handler ran; otherwise, `false` when the URL
-    ///   scheme is not allowed, the URL host is not registered, or no handler
-    ///   matches. A URL without a host, such as `myapp:///products/42`, is
+    /// - Returns: `true` if a handler handled the URL; otherwise, `false` when
+    ///   the URL scheme is not allowed, the URL host is not registered, or no
+    ///   handler matches or every matching handler declines. A URL without a host, such as `myapp:///products/42`, is
     ///   considered only by hostless registrations, and only while
     ///   ``baseHost`` is empty.
-    /// - Throws: Any error thrown while decoding a matching typed route.
+    /// - Throws: Any error thrown while decoding a matching typed route. A
+    ///   decode error stops routing rather than falling through.
     /// - Important: When several handlers match, Pathways selects the most
     ///   specific one. At the first path component where two patterns differ,
     ///   a literal beats a `:` placeholder; otherwise the longer pattern wins,
     ///   then exact matching beats prefix matching, then a host-specific
     ///   registration beats a hostless one. Equally specific registrations
-    ///   keep the first one registered.
+    ///   keep the first one registered. When the selected handler returns
+    ///   ``PathwayHandlerResult/declined``, routing falls through to the next
+    ///   handler in that order.
     @MainActor public func handle(_ url: URL) throws -> Bool {
 
         if let allowedSchemes {
@@ -139,19 +147,26 @@ public struct PathwayRouter: PathwaysProviding {
         }
 
         let components = url.pathwayPathComponents
-        var bestHandler: (any PathwayHandling)?
-        for (_, handler) in handlers where handler.canHandle(host: host, components: components) {
-            if let current = bestHandler, !handler.isMoreSpecific(than: current) {
-                continue
+        var candidates = handlers.map(\.handler).filter { $0.canHandle(host: host, components: components) }
+        while let index = Self.mostSpecificIndex(in: candidates) {
+            let handler = candidates.remove(at: index)
+            if try handler.handle(url: url, components: components) == .handled {
+                return true
             }
-            bestHandler = handler
-        }
-
-        if let handler = bestHandler {
-            try handler.handle(url: url, components: components)
-            return true
         }
         return false
+    }
+
+    /// Equally specific handlers keep the first one registered.
+    private static func mostSpecificIndex(in candidates: [any PathwayHandling]) -> Int? {
+        var best: Int?
+        for index in candidates.indices {
+            if let current = best, !candidates[index].isMoreSpecific(than: candidates[current]) {
+                continue
+            }
+            best = index
+        }
+        return best
     }
 
     /// Removes one registration.

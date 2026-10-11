@@ -97,6 +97,7 @@ import Testing
         for host in hosts {
             router.register(host: host, path: "/settings", matching: .exact, supportFragmentParams: false) { _ in
                 selected.append(host ?? "hostless")
+                return .handled
             }
         }
 

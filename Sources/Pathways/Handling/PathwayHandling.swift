@@ -17,8 +17,8 @@ protocol PathwayHandling: Sendable {
     /// A `nil` host, from a URL without one, matches only hostless handlers.
     func canHandle(host: String?, components: [String]) -> Bool
 
-    /// Execute the logic of the handler
-    @MainActor func handle(url: URL, components: [String]) throws
+    /// Execute the logic of the handler, reporting whether it handled the URL
+    @MainActor func handle(url: URL, components: [String]) throws -> PathwayHandlerResult
 }
 
 extension PathwayHandling {
