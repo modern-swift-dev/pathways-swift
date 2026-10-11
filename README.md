@@ -9,7 +9,7 @@ struct ProductRoute: Pathway {
     let productID: Int
 }
 
-var router = Pathways()
+var router = PathwayRouter()
 router.register(host: "example.com", ProductRoute.self) { route, query in
     print("Open product \(route.productID)")
     print("Campaign: \(query["campaign"] ?? "none")")
@@ -103,7 +103,7 @@ let route = try PathwayDecoder.shared.decode(ProductRoute.self, from: url)
 ### 3. Register a handler
 
 ```swift
-var router = Pathways()
+var router = PathwayRouter()
 
 router.register(host: "example.com", ProductRoute.self) { route, query in
     navigateToProduct(id: route.productID, campaign: query["campaign"])

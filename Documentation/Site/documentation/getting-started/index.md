@@ -61,7 +61,7 @@ let decoded = try PathwayDecoder.shared.decode(ProfileRoute.self, from: url)
 Create a routing center, register handlers, and pass URLs to `handle(_:)` on the main actor. It returns `true` after a matching handler runs and `false` when no registered host and route match.
 
 ```swift
-var router = Pathways()
+var router = PathwayRouter()
 
 router.register(host: "example.com", ProfileRoute.self) { route, query in
     print("Open profile \(route.userID)")

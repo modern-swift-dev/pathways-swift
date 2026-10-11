@@ -40,7 +40,7 @@ struct ProductRoute: Pathway {
     let productID: Int
 }
 
-var router = Pathways()
+var router = PathwayRouter()
 router.register(host: "example.com", ProductRoute.self) { route, query in
     print("Open product \(route.productID)")
     print("Campaign: \(query["campaign"] ?? "none")")

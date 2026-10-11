@@ -8,7 +8,7 @@ import Testing
     @Test func pathURL() throws {
         let url = try #require(URL(string: "http://localhost/darth/vader"))
 
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", TestMultiFieldTypesPathway.self, handler: { _, _ in
             Issue.record("invalid handler invoked")
         })
@@ -31,7 +31,7 @@ import Testing
     @Test func shortURL() throws {
         let url = try #require(URL(string: "http://localhost/user/1"))
 
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", TestMultiFieldTypesPathway.self, handler: { _, _ in
             Issue.record("invalid handler invoked")
         })
@@ -50,7 +50,7 @@ import Testing
     @Test func longURL() throws {
         let url = try #require(URL(string: "http://localhost/user/1/picture/2"))
 
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", TestMultiFieldTypesPathway.self, handler: { _, _ in
             // nothing to do
         })
@@ -69,7 +69,7 @@ import Testing
     @Test func dummyURL() throws {
         let url = try #require(URL(string: "http://localhost/foo/1/bar/2"))
 
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", TestMultiFieldTypesPathway.self, handler: { _, _ in
             Issue.record("invalid handler invoked")
         })
@@ -88,7 +88,7 @@ import Testing
     @Test func reset() throws {
         let url1 = try #require(URL(string: "http://localhost/user/1/picture/2"))
 
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", TestMultiFieldTypesPathway.self, handler: { _, _ in
             // nothing to do
         })
@@ -102,7 +102,7 @@ import Testing
         let url = try #require(URL(string: "https://localhost/user/1/details"))
         var invoked = false
 
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", TestSingleFieldPathway.self) { _, _ in
             invoked = true
         }
@@ -119,7 +119,7 @@ import Testing
         let otherHostURL = try #require(URL(string: "https://other.example/settings"))
         var receivedParameters: [String: String] = [:]
 
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", path: "/settings", matching: .exact) { parameters in
             receivedParameters = parameters
         }
@@ -133,7 +133,7 @@ import Testing
     }
 
     @Test func prefixTypedPlaceholdersDoNotSpanComponents() throws {
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", TestMultiFieldPathway.self) { _, _ in
             Issue.record("placeholder matched more than one component")
         }
@@ -142,7 +142,7 @@ import Testing
     }
 
     @Test func prefixPathRegistrationMatchesWholeComponentsOnly() throws {
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", path: "/settings") { _ in }
 
         #expect(try center.handle(#require(URL(string: "https://localhost/settings"))))
@@ -152,7 +152,7 @@ import Testing
 
     @Test(arguments: ["/settings", "/settings/", "settings", "//settings//"])
     func pathRegistrationsAreNormalized(_ path: String) throws {
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", path: path, matching: .exact) { _ in }
 
         #expect(try center.handle(#require(URL(string: "https://localhost/settings"))))
@@ -166,7 +166,7 @@ import Testing
         var receivedRoute: TestSingleFieldPathway?
         var receivedParameters: [String: String] = [:]
 
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", TestSingleFieldPathway.self, matching: .exact) { route, parameters in
             receivedRoute = route
             receivedParameters = parameters
@@ -181,7 +181,7 @@ import Testing
     @Test func exactTypedRegistrationReportsMalformedValues() throws {
         let url = try #require(URL(string: "https://localhost/user/not-a-number"))
 
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(host: "localhost", TestSingleFieldPathway.self, matching: .exact) { _, _ in
             Issue.record("invalid handler invoked")
         }
@@ -195,7 +195,7 @@ import Testing
         let url = try #require(URL(string: "https://localhost/callback#complete?token=abc"))
         var receivedParameters: [String: String] = [:]
 
-        var center = Pathways()
+        var center = PathwayRouter()
         center.register(
             host: "localhost",
             path: "/callback/#complete",

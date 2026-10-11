@@ -37,13 +37,13 @@ struct PathwayRegressionTests {
         let url = try #require(URL(string: "https://localhost/user/123#" + fragment))
         #expect(try PathwayDecoder.shared.decode(StringRoute.self, from: url).id == "123")
 
-        var typed = Pathways()
+        var typed = PathwayRouter()
         typed.register(host: "localhost", StringRoute.self, matching: .exact) { route, _ in
             #expect(route.id == "123")
         }
         #expect(try typed.handle(url))
 
-        var path = Pathways()
+        var path = PathwayRouter()
         path.register(host: "localhost", path: "/user/123", matching: .exact) { _ in }
         #expect(try path.handle(url))
     }
@@ -62,7 +62,7 @@ struct PathwayRegressionTests {
     @MainActor func regexMetacharactersAreLiteral(_ matching: PathwayMatchPolicy) throws {
         let bracket = try #require(URL(string: "https://localhost/file%5B/123"))
         #expect(try PathwayDecoder.shared.decode(LiteralRoute.self, from: bracket).id == "123")
-        var router = Pathways()
+        var router = PathwayRouter()
         router.register(host: "localhost", LiteralRoute.self, matching: matching) { route, _ in
             #expect(route.id == "123")
         }
@@ -94,7 +94,7 @@ struct PathwayRegressionTests {
     @MainActor func typedFragmentPreservesValuesAndParameters(_ matching: PathwayMatchPolicy) throws {
         let url = try #require(URL(string: "https://localhost/callback#complete/a%2Fb%3Fc%23d?token=x%26y%3Dz"))
         #expect(try PathwayDecoder.shared.decode(FragmentRoute.self, from: url).id == "a/b?c#d")
-        var router = Pathways()
+        var router = PathwayRouter()
         var received: String?
         router.register(host: "localhost", FragmentRoute.self, matching: matching, supportFragmentParams: true) { route, parameters in
             received = route.id
@@ -111,7 +111,7 @@ struct PathwayRegressionTests {
         #expect(try PathwayDecoder.shared.decode(StringRoute.self, from: url).id == value)
 
         var received: String?
-        var router = Pathways()
+        var router = PathwayRouter()
         router.register(host: "localhost", StringRoute.self, matching: .exact) { route, _ in
             received = route.id
         }

@@ -4,7 +4,7 @@ import Testing
 
 @MainActor struct PathwayProtocolTests {
     @Test func exactTypedRegistrationThroughProtocol() throws {
-        var center: any PathwaysProviding = Pathways()
+        var center: any PathwaysProviding = PathwayRouter()
         center.baseHost = "localhost"
         var receivedID: Int?
         center.register(TestSingleFieldPathway.self, matching: .exact, supportFragmentParams: false) { route, _ in
@@ -17,7 +17,7 @@ import Testing
     }
 
     @Test func exactHostTypedRegistrationThroughProtocol() throws {
-        var center: any PathwaysProviding = Pathways()
+        var center: any PathwaysProviding = PathwayRouter()
         var receivedID: Int?
         center.register(host: "localhost", TestSingleFieldPathway.self, matching: .exact, supportFragmentParams: false) { route, _ in
             receivedID = route.id
@@ -30,7 +30,7 @@ import Testing
     }
 
     @Test func exactPathRegistrationThroughProtocol() throws {
-        var center: any PathwaysProviding = Pathways()
+        var center: any PathwaysProviding = PathwayRouter()
         center.baseHost = "localhost"
         var receivedParameters: [String: String] = [:]
         center.register(path: "/settings", matching: .exact, supportFragmentParams: false) { parameters in
@@ -43,7 +43,7 @@ import Testing
     }
 
     @Test func exactHostPathRegistrationThroughProtocol() throws {
-        var center: any PathwaysProviding = Pathways()
+        var center: any PathwaysProviding = PathwayRouter()
         var receivedParameters: [String: String] = [:]
         center.register(host: "localhost", path: "/settings", matching: .exact, supportFragmentParams: false) { parameters in
             receivedParameters = parameters
@@ -56,7 +56,7 @@ import Testing
     }
 
     @Test(arguments: [false, true]) func longerPatternWinsRegardlessOfRegistrationOrder(reverseOrder: Bool) throws {
-        var center = Pathways()
+        var center = PathwayRouter()
         center.baseHost = "localhost"
         var selectedPattern: String?
         let patterns = reverseOrder ? ["/user/1", "/user"] : ["/user", "/user/1"]
@@ -76,10 +76,10 @@ import Testing
 
     @Test(arguments: [false, true], ["2", ".well-known", "-", "z"])
     func literalComponentBeatsPlaceholder(reverseOrder: Bool, literal: String) throws {
-        var center = Pathways()
+        var center = PathwayRouter()
         center.baseHost = "localhost"
         var selected: String?
-        let registrations: [(inout Pathways) -> Void] = [
+        let registrations: [(inout PathwayRouter) -> Void] = [
             { $0.register(path: "/v/\(literal)") { _ in selected = "literal" } },
             { $0.register(VersionRoute.self) { _, _ in selected = "typed" } }
         ]
@@ -94,7 +94,7 @@ import Testing
     }
 
     @Test func longerLiteralPatternBeatsShorterTypedPattern() throws {
-        var center = Pathways()
+        var center = PathwayRouter()
         center.baseHost = "localhost"
         var selected: String?
         center.register(TestSingleFieldPathway.self) { _, _ in selected = "typed" }
@@ -105,7 +105,7 @@ import Testing
     }
 
     @Test func earlierLiteralBeatsLaterLiteral() throws {
-        var center = Pathways()
+        var center = PathwayRouter()
         center.baseHost = "localhost"
         var selected: String?
         center.register(TestMultiFieldPathway.self) { _, _ in selected = "/user/:id/type/:type" }
@@ -117,7 +117,7 @@ import Testing
     }
 
     @Test(arguments: [false, true]) func exactBeatsPrefixForEqualPatterns(reverseOrder: Bool) throws {
-        var center = Pathways()
+        var center = PathwayRouter()
         center.baseHost = "localhost"
         var selected: PathwayMatchPolicy?
         for policy in reverseOrder ? [PathwayMatchPolicy.exact, .prefix] : [.prefix, .exact] {
@@ -129,9 +129,9 @@ import Testing
     }
 
     @Test(arguments: [false, true]) func hostSpecificBeatsHostlessForEqualPatterns(reverseOrder: Bool) throws {
-        var center = Pathways()
+        var center = PathwayRouter()
         var selected: String?
-        let registrations: [(inout Pathways) -> Void] = [
+        let registrations: [(inout PathwayRouter) -> Void] = [
             { $0.register(path: "/settings") { _ in selected = "hostless" } },
             { $0.register(host: "localhost", path: "/settings") { _ in selected = "host" } }
         ]
@@ -144,7 +144,7 @@ import Testing
     }
 
     @Test func equalPatternsSelectFirstRegisteredHandler() throws {
-        var center = Pathways()
+        var center = PathwayRouter()
         center.baseHost = "localhost"
         var invocationOrder: [Int] = []
         center.register(path: "/settings") { _ in invocationOrder.append(1) }
@@ -152,5 +152,12 @@ import Testing
 
         #expect(try center.handle(#require(URL(string: "https://localhost/settings"))))
         #expect(invocationOrder == [1])
+    }
+
+    @Test func moduleQualifiedNamesResolve() {
+        let router = Pathways.PathwayRouter()
+        let error: Pathways.PathwayError = .notFound
+        #expect(router.registeredPatterns().isEmpty)
+        #expect(error == .notFound)
     }
 }

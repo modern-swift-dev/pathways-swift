@@ -13,7 +13,7 @@ import Testing
     }
 
     @Test func computedPatternsStillReflectChangesAfterRegistration() throws {
-        var router = Pathways()
+        var router = PathwayRouter()
         router.baseHost = "localhost"
         router.register(DynamicRoute.self, matching: .exact) { route, _ in
             #expect(route.id == "value")
@@ -31,7 +31,7 @@ import Testing
     }
 
     @Test(arguments: [PathwayMatchPolicy.prefix, .exact]) func preparedLiteralPathsPreserveEscaping(_ policy: PathwayMatchPolicy) throws {
-        var router = Pathways()
+        var router = PathwayRouter()
         router.baseHost = "localhost"
         router.register(path: "/café/hello world", matching: policy) { _ in }
         let url = try #require(URL(string: "https://localhost/caf%C3%A9/hello%20world"))

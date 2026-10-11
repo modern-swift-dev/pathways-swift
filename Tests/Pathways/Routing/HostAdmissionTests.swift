@@ -4,7 +4,7 @@ import Testing
 
 @MainActor struct HostAdmissionTests {
     @Test func hostlessRegistrationAcceptsDeclaredHostsAndCurrentBaseHost() throws {
-        var router = Pathways()
+        var router = PathwayRouter()
         router.register(host: "declared.example", path: "/other") { _ in }
         router.register(host: "declared.example", path: "/duplicate") { _ in }
         router.register(path: "/target") { _ in }
@@ -31,14 +31,14 @@ import Testing
 @MainActor struct HostCaseTests {
     @Test(arguments: ["https://example.com/a", "https://EXAMPLE.com/a", "https://Example.Com/a"])
     func registeredHostsMatchCaseInsensitively(_ address: String) throws {
-        var router = Pathways()
+        var router = PathwayRouter()
         router.register(host: "Example.COM", path: "/a") { _ in }
         #expect(try router.handle(#require(URL(string: address))))
         #expect(router.registeredHosts() == ["example.com"])
     }
 
     @Test func baseHostMatchesCaseInsensitively() throws {
-        var router = Pathways()
+        var router = PathwayRouter()
         router.baseHost = "Base.Example"
         router.register(path: "/target") { _ in }
         #expect(try router.handle(#require(URL(string: "https://base.EXAMPLE/target"))))
@@ -47,7 +47,7 @@ import Testing
 
 @MainActor struct SchemeAdmissionTests {
     @Test func anySchemeIsAcceptedByDefault() throws {
-        var router = Pathways()
+        var router = PathwayRouter()
         router.register(host: "example.com", path: "/a") { _ in }
         #expect(router.allowedSchemes == nil)
         #expect(try router.handle(#require(URL(string: "ftp://example.com/a"))))
@@ -60,14 +60,14 @@ import Testing
         ("ftp://example.com/a", false)
     ])
     func allowedSchemesRestrictRouting(address: String, expected: Bool) throws {
-        var router = Pathways()
+        var router = PathwayRouter()
         router.allowedSchemes = ["HTTPS"]
         router.register(host: "example.com", path: "/a") { _ in }
         #expect(try router.handle(#require(URL(string: address))) == expected)
     }
 
     @Test func allowedSchemesApplyThroughProtocol() throws {
-        var router: any PathwaysProviding = Pathways()
+        var router: any PathwaysProviding = PathwayRouter()
         router.allowedSchemes = ["myapp"]
         router.register(host: "products", path: "/", matching: .prefix, supportFragmentParams: false) { _ in }
         #expect(try router.handle(#require(URL(string: "myapp://products/42"))))

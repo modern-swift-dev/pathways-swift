@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Register typed ``Pathway`` route models or path handlers, then
 /// call ``handle(_:)`` for each incoming URL.
-public struct Pathways: PathwaysProviding {
+public struct PathwayRouter: PathwaysProviding {
 
     /// The host accepted by registrations that do not specify their own host.
     ///

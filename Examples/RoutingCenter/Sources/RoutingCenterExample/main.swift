@@ -9,7 +9,7 @@ struct ProductRoute: Pathway {
 
 @main enum RoutingCenterExample {
     @MainActor static func main() throws {
-        var router = Pathways()
+        var router = PathwayRouter()
 
         router.register(host: "example.com", ProductRoute.self) { route, query in
             let campaign = query["campaign", default: "none"]
