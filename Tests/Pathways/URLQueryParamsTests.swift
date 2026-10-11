@@ -26,12 +26,20 @@ import Testing
         #expect(url.fragmentParams.isEmpty)
     }
 
-    @Test func fragmentParamsIgnoresMalformedPairs() throws {
-        let url = try #require(URL(string: "https://example.com/path#section?valid=yes&missingValue&too=many=parts"))
+    @Test func fragmentParamsIgnoresMalformedPairsAndKeepsFlags() throws {
+        let url = try #require(URL(string: "https://example.com/path#section?valid=yes&flag&empty=&=nameless&too=many=parts"))
 
         let params = url.fragmentParams.asDictionary
 
-        #expect(params == ["valid": "yes"])
+        #expect(params == ["valid": "yes", "flag": "", "empty": ""])
+    }
+
+    @Test(arguments: [false, true]) func valuelessParametersAreEmptyStrings(_ supportFragmentParams: Bool) throws {
+        let url = try #require(URL(string: "https://example.com/path?debug&term=a+b#section?verbose"))
+        let expected = supportFragmentParams
+            ? ["debug": "", "term": "a+b", "verbose": ""]
+            : ["debug": "", "term": "a+b"]
+        #expect(url.pathwayParameters(supportFragmentParams: supportFragmentParams) == expected)
     }
 
     @Test func allParamsCombinesQueryAndFragmentParams() throws {
@@ -53,7 +61,7 @@ import Testing
         ])
     }
 
-    @Test(arguments: [false, true]) func consolidatedParametersPreserveDuplicatesAndNilDeletion(_ supportFragmentParams: Bool) throws {
+    @Test(arguments: [false, true]) func consolidatedParametersKeepLastDuplicateAndFlags(_ supportFragmentParams: Bool) throws {
         let url =
             try #require(
                 URL(
@@ -61,8 +69,8 @@ import Testing
                 )
             )
         let expected = supportFragmentParams
-            ? ["duplicate": "fragmentLast", "empty": "", "token": "fragment"]
-            : ["duplicate": "last", "empty": "", "token": "query"]
+            ? ["duplicate": "fragmentLast", "deleted": "", "empty": "", "missing": "", "token": "fragment"]
+            : ["duplicate": "last", "deleted": "", "empty": "", "token": "query"]
         #expect(url.pathwayParameters(supportFragmentParams: supportFragmentParams) == expected)
         #expect(url.pathwayParameters(supportFragmentParams: supportFragmentParams) == (supportFragmentParams ? url.allParams : url.queryParams).asDictionary)
     }

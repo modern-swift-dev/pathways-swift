@@ -41,12 +41,11 @@ extension URL {
         }
         let query = fragment[fragment.index(after: separator)...]
         for pair in query.split(separator: "&") {
-            guard let equals = pair.firstIndex(of: "=") else {
-                continue
-            }
+            // A name without "=" is a flag with an empty value.
+            let equals = pair.firstIndex(of: "=") ?? pair.endIndex
             let encodedName = pair[..<equals]
-            let encodedValue = pair[pair.index(after: equals)...]
-            guard !encodedName.isEmpty, !encodedValue.isEmpty, !encodedValue.contains("="),
+            let encodedValue = equals == pair.endIndex ? "" : pair[pair.index(after: equals)...]
+            guard !encodedName.isEmpty, !encodedValue.contains("="),
                   let name = String(encodedName).removingPercentEncoding,
                   let value = String(encodedValue).removingPercentEncoding else {
                 continue
@@ -59,10 +58,12 @@ extension URL {
 
 extension Sequence<URLQueryItem> {
 
-    /// Return a dictionary for the the current array of items
+    /// Return a dictionary for the the current array of items.
+    ///
+    /// Items without a value map to an empty string, and the last repeated name wins.
     var asDictionary: [String: String] {
         reduce(into: [String: String]()) { partialResult, item in
-            partialResult[item.name] = item.value
+            partialResult[item.name] = item.value ?? ""
         }
     }
 }

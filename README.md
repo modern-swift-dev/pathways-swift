@@ -186,6 +186,8 @@ router.register(
 
 This supports a URL such as `https://example.com/callback#complete?token=abc`. Fragment handling is experimental.
 
+A parameter without a value, such as `?debug`, is delivered as an empty string. When a name repeats, the last value wins. A `+` stays a literal plus sign, so percent-encode spaces as `%20`.
+
 ## Examples
 
 The [Examples](Examples/README.md) directory contains standalone packages:
