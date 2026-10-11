@@ -14,7 +14,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify Swift 6.3
         run: swift --version | grep -F 'Swift version 6.3'
       - name: Install lint tools
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-24.04
     container: swift:6.3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Mint and xcbeautify
         run: |
           git clone --depth 1 --branch 0.18.0 https://github.com/yonaskolb/Mint.git "$RUNNER_TEMP/Mint"
@@ -62,7 +62,7 @@ jobs:
             simulator_name: Apple Vision Pro
             runtime_prefix: xrOS
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install xcbeautify
         run: |
           brew install mint
@@ -95,7 +95,7 @@ jobs:
       matrix:
         platform: [tvOS, watchOS]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install xcbeautify
         run: |
           brew install mint
