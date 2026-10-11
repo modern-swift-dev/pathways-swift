@@ -6,7 +6,9 @@ import Foundation
 /// Encodes flat ``PathwayPatternProvider`` values as URL paths.
 ///
 /// The encoder substitutes the pattern's `:` placeholders with the Codable
-/// values and percent-encodes values used in path components.
+/// values and percent-encodes values used in path components. Coding keys
+/// that are not pattern placeholders are written as query items, in encoding
+/// order.
 ///
 /// - Important: Values must conform to both `Encodable` and
 ///   ``PathwayPatternProvider`` at runtime. Pathways supports only flat Codable
@@ -23,7 +25,8 @@ public final class PathwayEncoder: Sendable {
     ///
     /// - Parameter value: A flat Encodable value that also conforms to
     ///   ``PathwayPatternProvider``.
-    /// - Returns: A percent-encoded path beginning with `/`.
+    /// - Returns: A percent-encoded path beginning with `/`, followed by a
+    ///   query string when the value has non-placeholder fields.
     /// - Throws: ``PathwayError/notEncodable(key:value:)`` when `value` does
     ///   not provide a compatible pattern, leaves a placeholder unfilled
     ///   (including an omitted optional value), fills one with an empty or
@@ -74,10 +77,15 @@ private class PathwayEncoderImpl: Encoder {
 
     private var pattern: [String]
     private var placeholderIndices: [String: [Int]] = [:]
+    private var queryItems: [String] = []
 
     func replace(key: String, value: String) throws {
         guard !isUnsupported else {
             throw PathwayError.unsupported
+        }
+        guard placeholderIndices[key] != nil else {
+            try appendQueryItem(key: key, value: value)
+            return
         }
         // An empty component would produce a path the decoder cannot match.
         guard !value.isEmpty,
@@ -90,6 +98,15 @@ private class PathwayEncoderImpl: Encoder {
         pattern[index] = encoded
     }
 
+    /// Unlike a path component, a query value may be empty.
+    private func appendQueryItem(key: String, value: String) throws {
+        guard let name = key.addingPercentEncoding(withAllowedCharacters: .pathwayQueryAllowed),
+              let encoded = value.addingPercentEncoding(withAllowedCharacters: .pathwayQueryAllowed) else {
+            throw PathwayError.notEncodable(key: key, value: value)
+        }
+        queryItems.append("\(name)=\(encoded)")
+    }
+
     var result: String {
         get throws {
             guard !isUnsupported else {
@@ -99,7 +116,8 @@ private class PathwayEncoderImpl: Encoder {
             if let first = unfilled.min(by: { $0.index < $1.index }) {
                 throw PathwayError.notEncodable(key: first.key, value: nil)
             }
-            return "/\(pattern.joined(separator: "/"))"
+            let path = "/\(pattern.joined(separator: "/"))"
+            return queryItems.isEmpty ? path : "\(path)?\(queryItems.joined(separator: "&"))"
         }
     }
 

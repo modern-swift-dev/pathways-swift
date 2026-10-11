@@ -2,6 +2,8 @@ import Foundation
 
 extension CharacterSet {
     static let pathwayComponentAllowed = urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))
+    /// A literal `+` would read as a space to many servers, so it is escaped too.
+    static let pathwayQueryAllowed = urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&=+#"))
 }
 
 extension URL {

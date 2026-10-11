@@ -59,4 +59,4 @@ Supported values
 
 Pathways supports strings, booleans, integers, floating-point values, raw-value Codable enums, UUIDs, and ISO 8601 dates. Nested keyed containers, collections, and optional path segments are not supported.
 
-Query parameters remain separate from the typed path model. Fragment parameters are experimental and require an explicit registration option.
+Model fields that are not pattern placeholders map to same-named query parameters: optional ones may be absent, and encoding writes them as query items. Fragment parameters are experimental and require an explicit registration option.

@@ -145,13 +145,13 @@ struct PathwayErrorTests {
     }
 
     @Test(arguments: [
-        (PathwayError.notDecodable(key: "id", value: "abc"), #"Cannot decode placeholder "id" from "abc"."#),
+        (PathwayError.notDecodable(key: "id", value: "abc"), #"Cannot decode key "id" from "abc"."#),
         (.notDecodable(key: nil, value: nil), "The value cannot be decoded as a route."),
-        (.notEncodable(key: "name", value: ""), #"Cannot encode "" for placeholder "name"."#),
-        (.notEncodable(key: "id", value: nil), #"Cannot encode a value for placeholder "id"."#),
+        (.notEncodable(key: "name", value: ""), #"Cannot encode "" for key "name"."#),
+        (.notEncodable(key: "id", value: nil), #"Cannot encode a value for key "id"."#),
         (.notEncodable(key: nil, value: nil), "The value cannot be encoded as a route."),
-        (.notFound(key: "name"), #"No value for placeholder "name"."#),
-        (.notFound(key: nil), "No value for the requested placeholder."),
+        (.notFound(key: "name"), #"No value for key "name"."#),
+        (.notFound(key: nil), "No value for the requested key."),
         (.invalidURL, "The URL path does not match the route pattern."),
         (.unsupported, "Pathways supports only flat Codable models; nested and unkeyed containers are unsupported.")
     ])

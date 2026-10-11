@@ -3,10 +3,11 @@
 #endif
 import Foundation
 
-/// Decodes URL paths into flat ``PathwayPatternProvider`` values.
+/// Decodes URLs into flat ``PathwayPatternProvider`` values.
 ///
 /// The decoder validates the URL path against the type's pattern before using
-/// its placeholders to initialize the value.
+/// its placeholders to initialize the value. Coding keys that are not pattern
+/// placeholders read the same-named query parameter instead.
 ///
 /// - Important: Values must conform to both `Decodable` and
 ///   ``PathwayPatternProvider`` at runtime. Pathways supports only flat Codable
@@ -19,18 +20,18 @@ public final class PathwayDecoder: Sendable {
     /// Creates a deep-link decoder.
     public init() {}
 
-    /// Decodes a URL path into a value of the requested type.
+    /// Decodes a URL into a value of the requested type.
     ///
     /// - Parameters:
     ///   - type: The destination type, which must also conform to
     ///     ``PathwayPatternProvider``.
-    ///   - from: The URL whose path should be decoded.
+    ///   - from: The URL whose path and query should be decoded.
     /// - Returns: A value initialized from path components matched by `type`'s
-    ///   pattern.
+    ///   pattern and from query parameters named by its other coding keys.
     /// - Throws: ``PathwayError/notDecodable(key:value:)`` when the type or a
     ///   path component cannot be decoded,
-    ///   ``PathwayError/notFound(key:)`` when a coding key has no
-    ///   placeholder value, or ``PathwayError/invalidURL`` when the URL path
+    ///   ``PathwayError/notFound(key:)`` when a required coding key has no
+    ///   placeholder value or query parameter, or ``PathwayError/invalidURL`` when the URL path
     ///   does not match the pattern.
     public func decode<T: Decodable>(_ type: T.Type, from: URL) throws -> T {
         guard let decodableType = type as? any PathwayPatternProvider.Type else {
@@ -57,7 +58,8 @@ public final class PathwayDecoder: Sendable {
             throw PathwayError.notDecodable(key: nil, value: nil)
         }
 
-        let decoder = PathwayDecoderImpl(pattern: pattern, components: components)
+        let queryItems = URLComponents(url: from, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        let decoder = PathwayDecoderImpl(pattern: pattern, components: components, queryItems: queryItems)
         return try type.init(from: decoder)
     }
 }
@@ -81,11 +83,16 @@ private final class PathwayDecoderImpl: Decoder {
     /// Keep the first value for each placeholder, matching duplicate-key behavior.
     private let componentsByKey: [String: String]
 
+    /// Query parameters for coding keys that are not placeholders.
+    private let queryByKey: [String: String]
+
     func keys<Key: CodingKey>(_: Key.Type) -> [Key] {
-        componentsByKey.compactMap { $0.value.isEmpty ? nil : Key(stringValue: $0.key) }
+        let placeholders = componentsByKey.compactMap { $0.value.isEmpty ? nil : Key(stringValue: $0.key) }
+        let queryKeys = queryByKey.keys.compactMap { componentsByKey[$0] == nil ? Key(stringValue: $0) : nil }
+        return placeholders + queryKeys
     }
 
-    init(pattern: String, components: [String]) {
+    init(pattern: String, components: [String], queryItems: [URLQueryItem]) {
         var values: [String: String] = [:]
         for (index, component) in pattern.split(separator: "/").enumerated() where component.hasPrefix(":") {
             let key = String(component.dropFirst())
@@ -94,6 +101,7 @@ private final class PathwayDecoderImpl: Decoder {
             }
         }
         componentsByKey = values
+        queryByKey = queryItems.asDictionary
     }
 
     func container<Key: CodingKey>(keyedBy _: Key.Type) throws -> KeyedDecodingContainer<Key> {
@@ -122,8 +130,16 @@ private final class PathwayDecoderImpl: Decoder {
         return value
     }
 
+    /// A placeholder's path component, or else the same-named query value,
+    /// which may be empty.
     func component(for key: any CodingKey) throws -> String {
-        guard let value = componentsByKey[key.stringValue], !value.isEmpty else {
+        if let value = componentsByKey[key.stringValue] {
+            guard !value.isEmpty else {
+                throw PathwayError.notFound(key: key.stringValue)
+            }
+            return value
+        }
+        guard let value = queryByKey[key.stringValue] else {
             throw PathwayError.notFound(key: key.stringValue)
         }
         return value

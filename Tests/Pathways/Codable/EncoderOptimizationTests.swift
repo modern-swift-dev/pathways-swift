@@ -29,9 +29,11 @@ struct EncoderOptimizationTests {
             #expect(container.codingPath.isEmpty)
             try container.encode(InspectedValue(expectedKey: "first"), forKey: .first)
             #expect(container.codingPath.isEmpty)
-            #expect(throws: PathwayError.notEncodable(key: "missing", value: "missing")) {
-                try container.encode(InspectedValue(expectedKey: "missing"), forKey: .missing)
+            #expect(throws: PathwayError.notEncodable(key: "number", value: "number")) {
+                try container.encode(InspectedValue(expectedKey: "number"), forKey: .number)
             }
+            #expect(container.codingPath.isEmpty)
+            try container.encode(InspectedValue(expectedKey: "missing"), forKey: .missing)
             #expect(container.codingPath.isEmpty)
             try container.encode(InspectedValue(expectedKey: "second"), forKey: .second)
             #expect(encoder.codingPath.isEmpty)
@@ -39,7 +41,7 @@ struct EncoderOptimizationTests {
     }
 
     @Test func siblingsAndErrorsDoNotAccumulateCodingPaths() throws {
-        #expect(try PathwayEncoder.shared.encode(InspectedRoute()) == "/42/first/second")
+        #expect(try PathwayEncoder.shared.encode(InspectedRoute()) == "/42/first/second?missing=missing")
     }
 
     private struct PlaceholderValueRoute: PathwayEncodable {

@@ -140,6 +140,29 @@ struct MemberRoute: Pathway {
 
 Supported scalar values include strings, booleans, integer and floating-point types, raw-value Codable enums, UUIDs, and ISO 8601 dates with millisecond precision. Nested values and collections are not supported.
 
+### Query fields
+
+A field whose coding key is not a pattern placeholder maps to the same-named query parameter. Decoding reads it from the URL's query, and encoding writes it as a query item, so an encoded URL decodes back to an equal model:
+
+```swift
+struct SearchRoute: Pathway {
+    static let pattern = "/search/:category"
+
+    let category: String
+    let page: Int
+    let campaign: String?
+}
+
+let path = try PathwayEncoder.shared.encode(SearchRoute(category: "books", page: 2, campaign: nil))
+// /search/books?page=2
+
+let url = URL(string: "https://example.com/search/books?page=2&campaign=summer")!
+let route = try PathwayDecoder.shared.decode(SearchRoute.self, from: url)
+// route.page == 2, route.campaign == "summer"
+```
+
+Query fields support the same scalar types as placeholders. An optional field may be absent: it decodes as `nil`, and encoding omits it. A missing required field throws `PathwayError.notFound(key:)` naming the key. Unlike a path component, a query value may be empty, so `?campaign=` decodes as an empty string. When a name repeats, the last value wins. Typed handlers receive the model with its query fields populated; the query parameters are also still delivered to the handler.
+
 ## Path-only routing
 
 Register a path directly when no typed path values are needed:
