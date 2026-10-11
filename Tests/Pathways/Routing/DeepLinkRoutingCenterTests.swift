@@ -132,6 +132,15 @@ import Testing
         #expect(try center.handle(otherHostURL) == false)
     }
 
+    @Test func prefixPathRegistrationMatchesWholeComponentsOnly() throws {
+        var center = Pathways()
+        center.register(host: "localhost", path: "/settings") { _ in }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/settings"))))
+        #expect(try center.handle(#require(URL(string: "https://localhost/settings/privacy"))))
+        #expect(try center.handle(#require(URL(string: "https://localhost/settings-legacy"))) == false)
+    }
+
     @Test(arguments: ["/settings", "/settings/", "settings", "//settings//"])
     func pathRegistrationsAreNormalized(_ path: String) throws {
         var center = Pathways()

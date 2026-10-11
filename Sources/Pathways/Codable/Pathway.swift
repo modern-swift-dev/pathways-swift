@@ -97,13 +97,24 @@ struct PathwayMatcher: Sendable {
                     return false
                 }
                 var position = normalizedPath.index(normalizedPath.startIndex, offsetBy: first.count)
+                if literals.count == 1 {
+                    return endsComponent(first, in: normalizedPath, at: position)
+                }
                 // A wildcard may consume any number of components. Choosing the
                 // earliest next literal leaves the most input for later literals.
-                for literal in literals.dropFirst() where !literal.isEmpty {
-                    guard let range = normalizedPath.range(of: literal, options: .literal, range: position ..< normalizedPath.endIndex) else {
-                        return false
+                for (index, literal) in literals.enumerated().dropFirst() where !literal.isEmpty {
+                    let isLast = index == literals.count - 1
+                    var searchStart = position
+                    while true {
+                        guard let range = normalizedPath.range(of: literal, options: .literal, range: searchStart ..< normalizedPath.endIndex) else {
+                            return false
+                        }
+                        if !isLast || endsComponent(literal, in: normalizedPath, at: range.upperBound) {
+                            position = range.upperBound
+                            break
+                        }
+                        searchStart = normalizedPath.index(after: range.lowerBound)
                     }
-                    position = range.upperBound
                 }
                 return true
             case let .exact(components):
@@ -133,5 +144,10 @@ struct PathwayMatcher: Sendable {
             case .invalid:
                 return false
         }
+    }
+
+    /// A trailing literal must end a path component, so `/about` does not match `/aboutus`.
+    private func endsComponent(_ literal: String, in path: String, at position: String.Index) -> Bool {
+        literal.hasSuffix("/") || position == path.endIndex || path[position] == "/"
     }
 }

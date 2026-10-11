@@ -47,6 +47,19 @@ struct PatternMatchingOptimizationTests {
         #expect(!matcher.matches("/start/a/middle/c/finish"))
     }
 
+    @Test func prefixLiteralsEndOnComponentBoundaries() {
+        let literal = PathwayMatcher(pattern: "/about", matching: .prefix)
+        #expect(literal.matches("/about"))
+        #expect(literal.matches("/about/team"))
+        #expect(!literal.matches("/aboutus"))
+
+        let trailing = PathwayMatcher(pattern: "/products/:id/reviews", matching: .prefix)
+        #expect(trailing.matches("/products/1/reviews"))
+        #expect(trailing.matches("/products/1/reviews/2"))
+        #expect(!trailing.matches("/products/1/reviewsXYZ"))
+        #expect(trailing.matches("/products/1/reviewsXYZ/reviews"))
+    }
+
     @Test func repeatedWildcardsRejectMissingSuffixWithoutBacktracking() {
         let pattern = String(repeating: "/:value", count: 100) + "/required"
         let matcher = PathwayMatcher(pattern: pattern, matching: .prefix)
@@ -74,8 +87,13 @@ struct PatternMatchingOptimizationTests {
                 expression += NSRegularExpression.escapedPattern(for: literal)
             }
         }
-        if case .exact = policy {
-            expression += "$"
+        switch policy {
+            case .prefix where !components.isEmpty:
+                expression += "(?=/|$)"
+            case .prefix:
+                break
+            case .exact:
+                expression += "$"
         }
         return try NSRegularExpression(pattern: expression)
     }

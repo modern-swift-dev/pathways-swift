@@ -150,7 +150,7 @@ router.register(host: "example.com", path: "/settings") { query in
 }
 ```
 
-Path-only registrations use prefix matching by default, so `/settings` also matches `/settings/privacy`. Pass `matching: .exact` when the complete normalized path must match:
+Path-only registrations use prefix matching by default, so `/settings` also matches `/settings/privacy`. Prefixes match whole path components, so `/settings` does not match `/settings-legacy`. Pass `matching: .exact` when the complete normalized path must match:
 
 ```swift
 router.register(host: "example.com", path: "/settings", matching: .exact) { query in

@@ -51,7 +51,8 @@ struct PathwayPathHandler: PathwayHandling {
 
         return switch matching {
             case .prefix:
-                candidatePath.hasPrefix(encodedPath)
+                // Only whole components match, so `/settings` does not match `/settings-legacy`.
+                candidatePath == encodedPath || candidatePath.hasPrefix(encodedPath.hasSuffix("/") ? encodedPath : encodedPath + "/")
             case .exact:
                 candidatePath == encodedPath
         }
