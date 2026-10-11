@@ -24,14 +24,14 @@ public final class PathwayEncoder: Sendable {
     /// - Parameter value: A flat Encodable value that also conforms to
     ///   ``PathwayPatternProvider``.
     /// - Returns: A percent-encoded path beginning with `/`.
-    /// - Throws: ``PathwayError/notEncodable`` when `value` does not
-    ///   provide a compatible pattern, leaves a placeholder unfilled (including
-    ///   an omitted optional value), fills one with an empty value, or cannot
-    ///   be represented by it; throws
+    /// - Throws: ``PathwayError/notEncodable(key:value:)`` when `value` does
+    ///   not provide a compatible pattern, leaves a placeholder unfilled
+    ///   (including an omitted optional value), fills one with an empty or
+    ///   explicit `nil` value, or cannot be represented by it; throws
     ///   ``PathwayError/unsupported`` for nested or unkeyed containers.
     public func encode(_ value: some Encodable) throws -> String {
         guard let encodableType = value as? (any PathwayPatternProvider) else {
-            throw PathwayError.notEncodable
+            throw PathwayError.notEncodable(key: nil, value: nil)
         }
 
         let encoder = PathwayEncoderImpl(pattern: type(of: encodableType).pattern)
@@ -46,10 +46,10 @@ public final class PathwayEncoder: Sendable {
     ///     ``PathwayPatternProvider``.
     ///   - relativeTo: The base URL used to resolve the encoded path.
     /// - Returns: The resolved URL, or `nil` when Foundation cannot construct it.
-    /// - Throws: ``PathwayError/notEncodable`` when `value` does not
-    ///   provide a compatible pattern, leaves a placeholder unfilled (including
-    ///   an omitted optional value), fills one with an empty value, or cannot
-    ///   be represented by it; throws
+    /// - Throws: ``PathwayError/notEncodable(key:value:)`` when `value` does
+    ///   not provide a compatible pattern, leaves a placeholder unfilled
+    ///   (including an omitted optional value), fills one with an empty or
+    ///   explicit `nil` value, or cannot be represented by it; throws
     ///   ``PathwayError/unsupported`` for nested or unkeyed containers.
     public func encode(_ value: some Encodable, relativeTo: URL) throws -> URL? {
         let path = try encode(value)
@@ -82,12 +82,12 @@ private class PathwayEncoderImpl: Encoder {
         // An empty component would produce a path the decoder cannot match.
         guard !value.isEmpty,
               let index = placeholderIndices[key]?.last,
-              let value = value.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) else {
-            throw PathwayError.notEncodable
+              let encoded = value.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) else {
+            throw PathwayError.notEncodable(key: key, value: value)
         }
 
         placeholderIndices[key]?.removeLast()
-        pattern[index] = value
+        pattern[index] = encoded
     }
 
     var result: String {
@@ -95,8 +95,9 @@ private class PathwayEncoderImpl: Encoder {
             guard !isUnsupported else {
                 throw PathwayError.unsupported
             }
-            guard placeholderIndices.values.allSatisfy(\.isEmpty) else {
-                throw PathwayError.notEncodable
+            let unfilled = placeholderIndices.flatMap { key, indices in indices.map { (index: $0, key: key) } }
+            if let first = unfilled.min(by: { $0.index < $1.index }) {
+                throw PathwayError.notEncodable(key: first.key, value: nil)
             }
             return "/\(pattern.joined(separator: "/"))"
         }
@@ -153,14 +154,14 @@ private struct PathwaySingleValueEncodingContainer: SingleValueEncodingContainer
             throw PathwayError.unsupported
         }
         guard let key = codingPath.last else {
-            throw PathwayError.notFound
+            throw PathwayError.notFound(key: nil)
         }
         try parent.replace(key: key.stringValue, value: value.description)
     }
 
     /// A path component cannot represent nil.
     func encodeNil() throws {
-        throw PathwayError.notEncodable
+        throw PathwayError.notEncodable(key: codingPath.last?.stringValue, value: nil)
     }
 
     func encode(_ value: Bool) throws {
@@ -220,7 +221,7 @@ private struct PathwaySingleValueEncodingContainer: SingleValueEncodingContainer
     }
 
     func encode(_: some Encodable) throws {
-        throw PathwayError.notEncodable
+        throw PathwayError.notEncodable(key: codingPath.last?.stringValue, value: nil)
     }
 }
 
@@ -246,8 +247,8 @@ private struct PathwayKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingConta
     }
 
     /// A path component cannot represent nil.
-    func encodeNil(forKey _: Key) throws {
-        throw PathwayError.notEncodable
+    func encodeNil(forKey key: Key) throws {
+        throw PathwayError.notEncodable(key: key.stringValue, value: nil)
     }
 
     func encode(_ value: Bool, forKey key: Key) throws {

@@ -156,9 +156,9 @@ import Testing
 
     @Test func moduleQualifiedNamesResolve() {
         let router = Pathways.PathwayRouter()
-        let error: Pathways.PathwayError = .notFound
+        let error: Pathways.PathwayError = .notFound(key: "id")
         #expect(router.registeredPatterns().isEmpty)
-        #expect(error == .notFound)
+        #expect(error == .notFound(key: "id"))
     }
 
     @Test func protocolRegistrationsUseDefaultArguments() throws {

@@ -11,7 +11,7 @@ struct PathwayRegressionTests {
 
     @Test func invalidDateThrowsAndValidDateDecodes() throws {
         let invalid = try #require(URL(string: "https://localhost/date/garbage"))
-        #expect(throws: PathwayError.notDecodable) {
+        #expect(throws: PathwayError.notDecodable(key: "date", value: "garbage")) {
             try PathwayDecoder.shared.decode(DateRoute.self, from: invalid)
         }
         let valid = try #require(URL(string: "https://localhost/date/2026-09-04T12:00:00Z"))
@@ -152,7 +152,7 @@ struct PathwayRegressionTests {
             #expect(container.contains(.id) == false)
             #expect(container.contains(.absent) == false)
             #expect(try container.decodeIfPresent(String.self, forKey: .absent) == nil)
-            #expect(throws: PathwayError.notDecodable) {
+            #expect(throws: PathwayError.notDecodable(key: "identifier", value: "first")) {
                 try container.decode(Int.self, forKey: .identifier)
             }
             #expect(container.codingPath.isEmpty)

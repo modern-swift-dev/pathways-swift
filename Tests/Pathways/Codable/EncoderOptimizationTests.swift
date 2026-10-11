@@ -29,7 +29,7 @@ struct EncoderOptimizationTests {
             #expect(container.codingPath.isEmpty)
             try container.encode(InspectedValue(expectedKey: "first"), forKey: .first)
             #expect(container.codingPath.isEmpty)
-            #expect(throws: PathwayError.notEncodable) {
+            #expect(throws: PathwayError.notEncodable(key: "missing", value: "missing")) {
                 try container.encode(InspectedValue(expectedKey: "missing"), forKey: .missing)
             }
             #expect(container.codingPath.isEmpty)
@@ -63,7 +63,7 @@ struct EncoderOptimizationTests {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(1, forKey: .value)
             try container.encode(2, forKey: .value)
-            #expect(throws: PathwayError.notEncodable) {
+            #expect(throws: PathwayError.notEncodable(key: "value", value: "3")) {
                 try container.encode(3, forKey: .value)
             }
         }
@@ -81,10 +81,10 @@ struct EncoderOptimizationTests {
     @Test func omittedOptionalPlaceholderThrowsForBothEncodingOverloads() throws {
         let route = OptionalRoute(id: nil)
         let base = try #require(URL(string: "https://localhost"))
-        #expect(throws: PathwayError.notEncodable) {
+        #expect(throws: PathwayError.notEncodable(key: "id", value: nil)) {
             try PathwayEncoder.shared.encode(route)
         }
-        #expect(throws: PathwayError.notEncodable) {
+        #expect(throws: PathwayError.notEncodable(key: "id", value: nil)) {
             try PathwayEncoder.shared.encode(route, relativeTo: base)
         }
     }
@@ -99,7 +99,7 @@ struct EncoderOptimizationTests {
     }
 
     @Test func everyRepeatedPlaceholderMustBeFilled() throws {
-        #expect(throws: PathwayError.notEncodable) {
+        #expect(throws: PathwayError.notEncodable(key: "value", value: nil)) {
             try PathwayEncoder.shared.encode(PartiallyFilledRoute())
         }
     }
@@ -113,7 +113,7 @@ struct EncoderOptimizationTests {
     }
 
     @Test func missingKeyThrowsButLiteralOnlyPatternEncodes() throws {
-        #expect(throws: PathwayError.notEncodable) {
+        #expect(throws: PathwayError.notEncodable(key: "id", value: nil)) {
             try PathwayEncoder.shared.encode(MissingKeyRoute())
         }
         #expect(try PathwayEncoder.shared.encode(LiteralRoute()) == "/users")
@@ -175,7 +175,7 @@ struct EncoderOptimizationTests {
     }
 
     @Test func emptyValuesThrowBecauseTheyCannotBeDecoded() throws {
-        #expect(throws: PathwayError.notEncodable) {
+        #expect(throws: PathwayError.notEncodable(key: "name", value: "")) {
             try PathwayEncoder.shared.encode(NameRoute(name: ""))
         }
         #expect(throws: PathwayError.invalidURL) {
@@ -209,7 +209,7 @@ struct EncoderOptimizationTests {
     }
 
     @Test(arguments: [false, true]) func explicitNilThrowsInsteadOfEncodingText(singleValue: Bool) throws {
-        #expect(throws: PathwayError.notEncodable) {
+        #expect(throws: PathwayError.notEncodable(key: "id", value: nil)) {
             try PathwayEncoder.shared.encode(NilRoute(singleValue: singleValue))
         }
     }

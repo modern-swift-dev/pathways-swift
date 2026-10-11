@@ -27,12 +27,14 @@ public final class PathwayDecoder: Sendable {
     ///   - from: The URL whose path should be decoded.
     /// - Returns: A value initialized from path components matched by `type`'s
     ///   pattern.
-    /// - Throws: ``PathwayError/notDecodable`` when the type or a path
-    ///   component cannot be decoded, or ``PathwayError/invalidURL`` when
-    ///   the URL path does not match the pattern.
+    /// - Throws: ``PathwayError/notDecodable(key:value:)`` when the type or a
+    ///   path component cannot be decoded,
+    ///   ``PathwayError/notFound(key:)`` when a coding key has no
+    ///   placeholder value, or ``PathwayError/invalidURL`` when the URL path
+    ///   does not match the pattern.
     public func decode<T: Decodable>(_ type: T.Type, from: URL) throws -> T {
         guard let decodableType = type as? any PathwayPatternProvider.Type else {
-            throw PathwayError.notDecodable
+            throw PathwayError.notDecodable(key: nil, value: nil)
         }
 
         let components = from.pathwayPathComponents
@@ -47,7 +49,7 @@ public final class PathwayDecoder: Sendable {
     /// The router has already validated the pattern against these components.
     func decodeMatched<T: Decodable>(_ type: T.Type, from: URL, pattern: String, components: [String]) throws -> T {
         guard from.host != nil, from.scheme != nil else {
-            throw PathwayError.notDecodable
+            throw PathwayError.notDecodable(key: nil, value: nil)
         }
 
         let decoder = PathwayDecoderImpl(pattern: pattern, components: components)
@@ -109,7 +111,7 @@ private final class PathwayDecoderImpl: Decoder {
     func rawDecode<T: LosslessStringConvertible>(for key: any CodingKey) throws -> T {
         let pathComponent = try component(for: key)
         guard let value = T(pathComponent) else {
-            throw PathwayError.notDecodable
+            throw PathwayError.notDecodable(key: key.stringValue, value: pathComponent)
         }
 
         return value
@@ -117,7 +119,7 @@ private final class PathwayDecoderImpl: Decoder {
 
     func component(for key: any CodingKey) throws -> String {
         guard let value = componentsByKey[key.stringValue], !value.isEmpty else {
-            throw PathwayError.notFound
+            throw PathwayError.notFound(key: key.stringValue)
         }
         return value
     }
@@ -217,13 +219,17 @@ private struct PathwayKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingConta
         if T.self == Date.self {
             let component = try parent.component(for: key)
             guard let date = ISO8601DateFormatter.pathwayDate(from: component) as? T else {
-                throw PathwayError.notDecodable
+                throw PathwayError.notDecodable(key: key.stringValue, value: component)
             }
             return date
         }
 
-        return try type.init(from: parent)
-
+        do {
+            return try type.init(from: parent)
+        } catch is DecodingError {
+            // Raw-value enums and UUIDs reject the component they read.
+            throw PathwayError.notDecodable(key: key.stringValue, value: try? parent.component(for: key))
+        }
     }
 
     func nestedContainer<NestedKey: CodingKey>(keyedBy _: NestedKey.Type, forKey _: Key) throws -> KeyedDecodingContainer<NestedKey> {
@@ -265,7 +271,7 @@ private struct PathwaySingleValueDecodingContainer: SingleValueDecodingContainer
         if let key = codingPath.last {
             return try parent.rawDecode(for: key)
         }
-        throw PathwayError.notFound
+        throw PathwayError.notFound(key: nil)
     }
 
     func decodeNil() -> Bool {
