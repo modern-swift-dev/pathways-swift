@@ -58,7 +58,7 @@ extension URL {
 
 extension Sequence<URLQueryItem> {
 
-    /// Return a dictionary for the the current array of items.
+    /// Return a dictionary for the current array of items.
     ///
     /// Items without a value map to an empty string, and the last repeated name wins.
     var asDictionary: [String: String] {

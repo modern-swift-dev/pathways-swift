@@ -1,6 +1,5 @@
 import Foundation
 
-// sourcery: AutoMockable
 /// Describes a router that dispatches incoming URLs to registered handlers.
 ///
 /// Implement this protocol to provide a custom routing center compatible with

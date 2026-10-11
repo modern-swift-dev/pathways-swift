@@ -17,7 +17,7 @@ public struct PathwayRouter: PathwaysProviding {
     /// ignore the same paths delivered through other schemes.
     public var allowedSchemes: Set<String>?
 
-    /// The list of hadnlers
+    /// The registered handlers
     private var handlers: [any PathwayHandling] = []
 
     /// Creates a routing center with no registered handlers and an empty base host.
