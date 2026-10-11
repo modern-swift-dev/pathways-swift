@@ -22,6 +22,7 @@ setup:
 
 lint: lint-workflows
 
+	mint run --no-install nicklockwood/SwiftFormat $(SWIFT_FILES) --config .swiftformat --lint --quiet
 	mint run --no-install realm/SwiftLint lint --config .swiftlint.yml --quiet --force-exclude $(SWIFT_FILES)
 
 format:
