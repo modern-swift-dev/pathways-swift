@@ -34,10 +34,10 @@ try router.handle(url)
 ## Requirements
 
 - Swift 6.0 or newer
-- macOS 15 or newer
-- iOS 18 or newer
-- tvOS 18 or newer
-- watchOS 10 or newer
+- macOS 13 or newer
+- iOS 16 or newer
+- tvOS 16 or newer
+- watchOS 9 or newer
 - visionOS 1 or newer
 
 ## Installation

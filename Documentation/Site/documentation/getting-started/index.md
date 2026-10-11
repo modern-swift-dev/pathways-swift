@@ -13,7 +13,7 @@ Pathways turns URL paths into flat, strongly typed Swift values and dispatches i
 
 ## Requirements
 
-Use Swift 6.0 or newer. The package supports macOS 15, iOS 18, tvOS 18, watchOS 10, and visionOS 1 or newer.
+Use Swift 6.0 or newer. The package supports macOS 13, iOS 16, tvOS 16, watchOS 9, and visionOS 1 or newer.
 
 ## Add the package
 
