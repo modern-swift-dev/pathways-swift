@@ -10,7 +10,7 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
     let host: String?
 
     /// The handler
-    private let handler: @MainActor @Sendable (T, PathwayRequest) -> PathwayHandlerResult
+    private let handler: PathwayHandler<T>
 
     /// Flag for fragment params handling
     private let supportFragmentParams: Bool
@@ -28,7 +28,7 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
         host: String? = nil,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
-        _ handler: @MainActor @Sendable @escaping (T, PathwayRequest) -> PathwayHandlerResult
+        _ handler: PathwayHandler<T>
     ) {
         // Hosts are case-insensitive.
         self.host = host?.lowercased()
@@ -53,9 +53,20 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
         return pattern == initialPattern ? initialMatcher : PathwayMatcher(pattern: pattern, matching: matching)
     }
 
+    var isAsync: Bool {
+        handler.isAsync
+    }
+
     /// Handle the URL using the callback. Throwing if the url could not be successfully decoded
     @MainActor func handle(url: URL, components: [String]) throws -> PathwayHandlerResult {
         let result = try PathwayDecoder.shared.decodeMatched(T.self, from: url, pattern: T.pattern, components: components)
-        return handler(result, PathwayRequest(url: url, supportFragmentParams: supportFragmentParams))
+        return try handler(result, PathwayRequest(url: url, supportFragmentParams: supportFragmentParams))
+    }
+
+    /// Handle the URL using the callback, awaiting it when it is asynchronous.
+    /// Throwing if the url could not be successfully decoded
+    @MainActor func handle(url: URL, components: [String]) async throws -> PathwayHandlerResult {
+        let result = try PathwayDecoder.shared.decodeMatched(T.self, from: url, pattern: T.pattern, components: components)
+        return await handler(result, PathwayRequest(url: url, supportFragmentParams: supportFragmentParams))
     }
 }

@@ -301,6 +301,24 @@ router.fallback = { request in
 
 The fallback runs when no registration matches the URL or every matching handler declines, and `handle(_:)` then returns `true`. It does not run for URLs rejected by `allowedSchemes` or whose host is not admitted, so `handle(_:)` still returns `false` for those, nor after a decode error, which still throws.
 
+### Asynchronous handlers
+
+A request handler that needs to await, for example to load data or wait for authentication, can be `async`. It can also decline based on that work. Route URLs with the async `handle(_:)`, which runs synchronous and asynchronous handlers with the same precedence, fall-through, and fallback:
+
+```swift
+router.register(host: "example.com", ProductRoute.self) { route, _ in
+    guard let product = try? await catalog.product(id: route.productID) else {
+        return .declined
+    }
+    show(product)
+    return .handled
+}
+
+let handled = try await router.handle(url)
+```
+
+The synchronous `handle(_:)` never skips an asynchronous handler: when it selects one, it throws `PathwayRouterError.asyncHandlerRequiresAsyncHandle`. In an `async` context, Swift selects the async `handle(_:)`, so write `try await router.handle(url)`.
+
 ## Examples
 
 The [Examples](Examples/README.md) directory contains standalone packages:

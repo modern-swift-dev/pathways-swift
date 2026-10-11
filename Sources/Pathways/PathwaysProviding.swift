@@ -9,7 +9,7 @@ public protocol PathwaysProviding: Sendable {
     /// The host accepted by registrations that do not specify their own host.
     ///
     /// Set this to the host of URLs your application accepts before calling
-    /// ``handle(_:)`` for hostless registrations.
+    /// `handle(_:)` for hostless registrations.
     var baseHost: String { get set }
 
     /// The URL schemes accepted by every registration, compared case-insensitively.
@@ -20,7 +20,7 @@ public protocol PathwaysProviding: Sendable {
     /// The handler for admitted URLs that no registration handles.
     ///
     /// The fallback receives the request when no registration matches the
-    /// URL or every matching handler declines, so ``handle(_:)`` returns
+    /// URL or every matching handler declines, so `handle(_:)` returns
     /// `true`. It does not run for URLs rejected by ``allowedSchemes`` or
     /// whose host is not admitted, nor after a decode error. Its request does
     /// not include fragment parameters. `nil`, the default, disables it.
@@ -29,9 +29,9 @@ public protocol PathwaysProviding: Sendable {
     /// Registers a typed handler.
     ///
     /// The conveniences in the protocol extension supply defaults for
-    /// `host`, `matching`, and `supportFragmentParams`, and also accept
-    /// handlers that receive the parameter dictionary instead of the request,
-    /// which always handle the URL.
+    /// `host`, `matching`, and `supportFragmentParams`, and accept
+    /// synchronous and asynchronous request handlers as well as handlers that
+    /// receive the parameter dictionary, which always handle the URL.
     ///
     /// - Parameters:
     ///   - host: The URL host the handler accepts, compared case-insensitively,
@@ -41,7 +41,7 @@ public protocol PathwaysProviding: Sendable {
     ///   - matching: The policy used to match the route.
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the request's parameters and query items.
-    ///   - handler: The main-actor closure invoked with the decoded route and
+    ///   - handler: The main-actor handler invoked with the decoded route and
     ///     the request. Return ``PathwayHandlerResult/declined`` to let the
     ///     next most specific matching registration handle the URL.
     /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
@@ -54,15 +54,15 @@ public protocol PathwaysProviding: Sendable {
         _ type: T.Type,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
-        handler: @MainActor @Sendable @escaping (T, PathwayRequest) -> PathwayHandlerResult
+        handler: PathwayHandler<T>
     ) -> PathwayRegistrationID
 
     /// Registers a path handler.
     ///
     /// The conveniences in the protocol extension supply defaults for
-    /// `host`, `matching`, and `supportFragmentParams`, and also accept
-    /// handlers that receive the parameter dictionary instead of the request,
-    /// which always handle the URL.
+    /// `host`, `matching`, and `supportFragmentParams`, and accept
+    /// synchronous and asynchronous request handlers as well as handlers that
+    /// receive the parameter dictionary, which always handle the URL.
     ///
     /// - Parameters:
     ///   - host: The URL host the handler accepts, compared case-insensitively,
@@ -71,7 +71,7 @@ public protocol PathwaysProviding: Sendable {
     ///   - matching: The policy used to match the path.
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the request's parameters and query items.
-    ///   - handler: The main-actor closure invoked with the request. Return
+    ///   - handler: The main-actor handler invoked with the request. Return
     ///     ``PathwayHandlerResult/declined`` to let the next most specific
     ///     matching registration handle the URL.
     /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
@@ -84,20 +84,23 @@ public protocol PathwaysProviding: Sendable {
         path: String,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
-        handler: @MainActor @Sendable @escaping (PathwayRequest) -> PathwayHandlerResult
+        handler: PathwayHandler<Void>
     ) -> PathwayRegistrationID
 
-    /// Handles a URL with the best matching registered handler.
+    /// Handles a URL with the best matching registered synchronous handler.
     ///
     /// - Parameter url: The incoming URL to route.
     /// - Returns: `true` if a handler or the ``fallback`` handled the URL;
     ///   otherwise, `false` when the URL scheme is not allowed, the URL host
     ///   is not registered, or no handler matches or every matching handler
-    ///   declines and there is no fallback. A URL without a host, such as `myapp:///products/42`, is
-    ///   considered only by hostless registrations, and only while
-    ///   ``baseHost`` is empty.
+    ///   declines and there is no fallback. A URL without a host, such as
+    ///   `myapp:///products/42`, is considered only by hostless registrations,
+    ///   and only while ``baseHost`` is empty.
     /// - Throws: Any error thrown while decoding a matching typed route. A
-    ///   decode error stops routing rather than falling through.
+    ///   decode error stops routing rather than falling through. Throws
+    ///   ``PathwayRouterError/asyncHandlerRequiresAsyncHandle`` instead of
+    ///   skipping an asynchronous handler it selects; route such URLs with
+    ///   the async `handle(_:)`.
     /// - Important: When several handlers match, Pathways selects the most
     ///   specific one. At the first path component where two patterns differ,
     ///   a literal beats a `:` placeholder; otherwise the longer pattern wins,
@@ -107,6 +110,22 @@ public protocol PathwaysProviding: Sendable {
     ///   ``PathwayHandlerResult/declined``, routing falls through to the next
     ///   handler in that order.
     @MainActor func handle(_ url: URL) throws -> Bool
+
+    /// Handles a URL with the best matching registered handler, awaiting it
+    /// when it is asynchronous.
+    ///
+    /// This runs synchronous and asynchronous handlers alike, with the same
+    /// precedence, fall-through, and ``fallback`` as the synchronous
+    /// `handle(_:)`.
+    ///
+    /// - Parameter url: The incoming URL to route.
+    /// - Returns: `true` if a handler or the ``fallback`` handled the URL;
+    ///   otherwise, `false` when the URL scheme is not allowed, the URL host
+    ///   is not registered, or no handler matches or every matching handler
+    ///   declines and there is no fallback.
+    /// - Throws: Any error thrown while decoding a matching typed route. A
+    ///   decode error stops routing rather than falling through.
+    @MainActor func handle(_ url: URL) async throws -> Bool
 
     /// Removes one registration.
     ///
@@ -134,6 +153,8 @@ public protocol PathwaysProviding: Sendable {
     func registeredPatterns() -> [String]
 }
 
+/// Conveniences pass `String?.some(host)` so the call reaches the
+/// requirement instead of re-entering the `host: String` convenience.
 public extension PathwaysProviding {
 
     /// Registers a typed handler for one exact host.
@@ -166,7 +187,7 @@ public extension PathwaysProviding {
             type,
             matching: matching,
             supportFragmentParams: supportFragmentParams,
-            handler: handler
+            handler: .sync(handler)
         )
     }
 
@@ -200,7 +221,7 @@ public extension PathwaysProviding {
             type,
             matching: matching,
             supportFragmentParams: supportFragmentParams,
-            handler: handler
+            handler: .sync(handler)
         )
     }
 
@@ -233,7 +254,7 @@ public extension PathwaysProviding {
             path: path,
             matching: matching,
             supportFragmentParams: supportFragmentParams,
-            handler: handler
+            handler: .sync { _, request in handler(request) }
         )
     }
 
@@ -266,7 +287,157 @@ public extension PathwaysProviding {
             path: path,
             matching: matching,
             supportFragmentParams: supportFragmentParams,
-            handler: handler
+            handler: .sync { _, request in handler(request) }
+        )
+    }
+
+    /// Registers a typed handler for one exact host.
+    ///
+    /// - Parameters:
+    ///   - host: The URL host the handler accepts, compared case-insensitively.
+    ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
+    ///     matched and decoded.
+    ///   - matching: The policy used to match the route. Defaults to
+    ///     ``PathwayMatchPolicy/prefix``.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the request's parameters and query items. Defaults to
+    ///     `false`.
+    ///   - handler: The main-actor closure invoked with the decoded route and
+    ///     the request. Return ``PathwayHandlerResult/declined`` to let the
+    ///     next most specific matching registration handle the URL.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
+    /// - Important: Route URLs to an asynchronous handler with the async
+    ///   `handle(_:)`; the synchronous one throws
+    ///   ``PathwayRouterError/asyncHandlerRequiresAsyncHandle`` when it
+    ///   selects this handler.
+    @_disfavoredOverload
+    @discardableResult
+    mutating func register<T: Pathway>(
+        host: String,
+        _ type: T.Type,
+        matching: PathwayMatchPolicy = .prefix,
+        supportFragmentParams: Bool = false,
+        handler: @MainActor @Sendable @escaping (T, PathwayRequest) async -> PathwayHandlerResult
+    ) -> PathwayRegistrationID {
+        register(
+            host: String?.some(host),
+            type,
+            matching: matching,
+            supportFragmentParams: supportFragmentParams,
+            handler: .async(handler)
+        )
+    }
+
+    /// Registers a typed handler without restricting it to a specific host.
+    ///
+    /// - Parameters:
+    ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
+    ///     matched and decoded.
+    ///   - matching: The policy used to match the route. Defaults to
+    ///     ``PathwayMatchPolicy/prefix``.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the request's parameters and query items. Defaults to
+    ///     `false`.
+    ///   - handler: The main-actor closure invoked with the decoded route and
+    ///     the request. Return ``PathwayHandlerResult/declined`` to let the
+    ///     next most specific matching registration handle the URL.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
+    /// - Important: Route URLs to an asynchronous handler with the async
+    ///   `handle(_:)`; the synchronous one throws
+    ///   ``PathwayRouterError/asyncHandlerRequiresAsyncHandle`` when it
+    ///   selects this handler.
+    /// - Important: A hostless registration can handle URLs whose host equals
+    ///   ``baseHost`` or a host declared by another registration.
+    @_disfavoredOverload
+    @discardableResult
+    mutating func register<T: Pathway>(
+        _ type: T.Type,
+        matching: PathwayMatchPolicy = .prefix,
+        supportFragmentParams: Bool = false,
+        handler: @MainActor @Sendable @escaping (T, PathwayRequest) async -> PathwayHandlerResult
+    ) -> PathwayRegistrationID {
+        register(
+            host: nil,
+            type,
+            matching: matching,
+            supportFragmentParams: supportFragmentParams,
+            handler: .async(handler)
+        )
+    }
+
+    /// Registers a path handler for one exact host.
+    ///
+    /// - Parameters:
+    ///   - host: The URL host the handler accepts, compared case-insensitively.
+    ///   - path: The path the handler accepts.
+    ///   - matching: The policy used to match the path. Defaults to
+    ///     ``PathwayMatchPolicy/prefix``.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the request's parameters and query items. Defaults to
+    ///     `false`.
+    ///   - handler: The main-actor closure invoked with the request. Return
+    ///     ``PathwayHandlerResult/declined`` to let the next most specific
+    ///     matching registration handle the URL.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
+    /// - Important: Route URLs to an asynchronous handler with the async
+    ///   `handle(_:)`; the synchronous one throws
+    ///   ``PathwayRouterError/asyncHandlerRequiresAsyncHandle`` when it
+    ///   selects this handler.
+    @_disfavoredOverload
+    @discardableResult
+    mutating func register(
+        host: String,
+        path: String,
+        matching: PathwayMatchPolicy = .prefix,
+        supportFragmentParams: Bool = false,
+        handler: @MainActor @Sendable @escaping (PathwayRequest) async -> PathwayHandlerResult
+    ) -> PathwayRegistrationID {
+        register(
+            host: String?.some(host),
+            path: path,
+            matching: matching,
+            supportFragmentParams: supportFragmentParams,
+            handler: .async { _, request in await handler(request) }
+        )
+    }
+
+    /// Registers a path handler without restricting it to a specific host.
+    ///
+    /// - Parameters:
+    ///   - path: The path the handler accepts.
+    ///   - matching: The policy used to match the path. Defaults to
+    ///     ``PathwayMatchPolicy/prefix``.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the request's parameters and query items. Defaults to
+    ///     `false`.
+    ///   - handler: The main-actor closure invoked with the request. Return
+    ///     ``PathwayHandlerResult/declined`` to let the next most specific
+    ///     matching registration handle the URL.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
+    /// - Important: Route URLs to an asynchronous handler with the async
+    ///   `handle(_:)`; the synchronous one throws
+    ///   ``PathwayRouterError/asyncHandlerRequiresAsyncHandle`` when it
+    ///   selects this handler.
+    /// - Important: A hostless registration can handle URLs whose host equals
+    ///   ``baseHost`` or a host declared by another registration.
+    @_disfavoredOverload
+    @discardableResult
+    mutating func register(
+        path: String,
+        matching: PathwayMatchPolicy = .prefix,
+        supportFragmentParams: Bool = false,
+        handler: @MainActor @Sendable @escaping (PathwayRequest) async -> PathwayHandlerResult
+    ) -> PathwayRegistrationID {
+        register(
+            host: nil,
+            path: path,
+            matching: matching,
+            supportFragmentParams: supportFragmentParams,
+            handler: .async { _, request in await handler(request) }
         )
     }
 
@@ -298,7 +469,7 @@ public extension PathwaysProviding {
             type,
             matching: matching,
             supportFragmentParams: supportFragmentParams,
-            handler: { route, request in
+            handler: .sync { route, request in
                 handler(route, request.parameters)
                 return .handled
             }
@@ -333,7 +504,7 @@ public extension PathwaysProviding {
             type,
             matching: matching,
             supportFragmentParams: supportFragmentParams,
-            handler: { route, request in
+            handler: .sync { route, request in
                 handler(route, request.parameters)
                 return .handled
             }
@@ -367,7 +538,7 @@ public extension PathwaysProviding {
             path: path,
             matching: matching,
             supportFragmentParams: supportFragmentParams,
-            handler: { request in
+            handler: .sync { _, request in
                 handler(request.parameters)
                 return .handled
             }
@@ -401,7 +572,7 @@ public extension PathwaysProviding {
             path: path,
             matching: matching,
             supportFragmentParams: supportFragmentParams,
-            handler: { request in
+            handler: .sync { _, request in
                 handler(request.parameters)
                 return .handled
             }

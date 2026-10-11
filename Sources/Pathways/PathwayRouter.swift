@@ -3,7 +3,7 @@ import Foundation
 /// A value-based router that dispatches URLs to registered handlers.
 ///
 /// Register typed ``Pathway`` route models or path handlers, then
-/// call ``handle(_:)`` for each incoming URL.
+/// call `handle(_:)` for each incoming URL.
 public struct PathwayRouter: PathwaysProviding {
 
     /// The host accepted by registrations that do not specify their own host.
@@ -20,7 +20,7 @@ public struct PathwayRouter: PathwaysProviding {
     /// The handler for admitted URLs that no registration handles.
     ///
     /// The fallback receives the request when no registration matches the
-    /// URL or every matching handler declines, so ``handle(_:)`` returns
+    /// URL or every matching handler declines, so `handle(_:)` returns
     /// `true`. It does not run for URLs rejected by ``allowedSchemes`` or
     /// whose host is not admitted, nor after a decode error. Its request does
     /// not include fragment parameters. `nil`, the default, disables it.
@@ -35,9 +35,9 @@ public struct PathwayRouter: PathwaysProviding {
     /// Registers a typed handler.
     ///
     /// Prefer the ``PathwaysProviding`` conveniences, which supply defaults
-    /// for `host`, `matching`, and `supportFragmentParams`, and also accept
-    /// handlers that receive the parameter dictionary instead of the request,
-    /// which always handle the URL.
+    /// for `host`, `matching`, and `supportFragmentParams`, and accept
+    /// synchronous and asynchronous request handlers as well as handlers that
+    /// receive the parameter dictionary, which always handle the URL.
     ///
     /// - Parameters:
     ///   - host: The URL host the handler accepts, compared case-insensitively,
@@ -47,7 +47,7 @@ public struct PathwayRouter: PathwaysProviding {
     ///   - matching: The policy used to match the route.
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the request's parameters and query items.
-    ///   - handler: The main-actor closure invoked with the decoded route and
+    ///   - handler: The main-actor handler invoked with the decoded route and
     ///     the request. Return ``PathwayHandlerResult/declined`` to let the
     ///     next most specific matching registration handle the URL.
     /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
@@ -60,7 +60,7 @@ public struct PathwayRouter: PathwaysProviding {
         _: T.Type,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
-        handler: @escaping @MainActor @Sendable (T, PathwayRequest) -> PathwayHandlerResult
+        handler: PathwayHandler<T>
     ) -> PathwayRegistrationID {
         append(PathwayPatternHandler(
             host: host,
@@ -73,9 +73,9 @@ public struct PathwayRouter: PathwaysProviding {
     /// Registers a path handler.
     ///
     /// Prefer the ``PathwaysProviding`` conveniences, which supply defaults
-    /// for `host`, `matching`, and `supportFragmentParams`, and also accept
-    /// handlers that receive the parameter dictionary instead of the request,
-    /// which always handle the URL.
+    /// for `host`, `matching`, and `supportFragmentParams`, and accept
+    /// synchronous and asynchronous request handlers as well as handlers that
+    /// receive the parameter dictionary, which always handle the URL.
     ///
     /// - Parameters:
     ///   - host: The URL host the handler accepts, compared case-insensitively,
@@ -84,7 +84,7 @@ public struct PathwayRouter: PathwaysProviding {
     ///   - matching: The policy used to match the path.
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the request's parameters and query items.
-    ///   - handler: The main-actor closure invoked with the request. Return
+    ///   - handler: The main-actor handler invoked with the request. Return
     ///     ``PathwayHandlerResult/declined`` to let the next most specific
     ///     matching registration handle the URL.
     /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
@@ -97,7 +97,7 @@ public struct PathwayRouter: PathwaysProviding {
         path: String,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
-        handler: @escaping @MainActor @Sendable (PathwayRequest) -> PathwayHandlerResult
+        handler: PathwayHandler<Void>
     ) -> PathwayRegistrationID {
         append(PathwayPathHandler(
             host: host,
@@ -114,17 +114,20 @@ public struct PathwayRouter: PathwaysProviding {
         return id
     }
 
-    /// Handles a URL with the best matching registered handler.
+    /// Handles a URL with the best matching registered synchronous handler.
     ///
     /// - Parameter url: The incoming URL to route.
     /// - Returns: `true` if a handler or the ``fallback`` handled the URL;
     ///   otherwise, `false` when the URL scheme is not allowed, the URL host
     ///   is not registered, or no handler matches or every matching handler
-    ///   declines and there is no fallback. A URL without a host, such as `myapp:///products/42`, is
-    ///   considered only by hostless registrations, and only while
-    ///   ``baseHost`` is empty.
+    ///   declines and there is no fallback. A URL without a host, such as
+    ///   `myapp:///products/42`, is considered only by hostless registrations,
+    ///   and only while ``baseHost`` is empty.
     /// - Throws: Any error thrown while decoding a matching typed route. A
-    ///   decode error stops routing rather than falling through.
+    ///   decode error stops routing rather than falling through. Throws
+    ///   ``PathwayRouterError/asyncHandlerRequiresAsyncHandle`` instead of
+    ///   skipping an asynchronous handler it selects; route such URLs with
+    ///   the async `handle(_:)`.
     /// - Important: When several handlers match, Pathways selects the most
     ///   specific one. At the first path component where two patterns differ,
     ///   a literal beats a `:` placeholder; otherwise the longer pattern wins,
@@ -134,53 +137,101 @@ public struct PathwayRouter: PathwaysProviding {
     ///   ``PathwayHandlerResult/declined``, routing falls through to the next
     ///   handler in that order.
     @MainActor public func handle(_ url: URL) throws -> Bool {
+        guard var candidates = candidates(for: url) else {
+            return false
+        }
+        while let handler = candidates.next() {
+            guard !handler.isAsync else {
+                throw PathwayRouterError.asyncHandlerRequiresAsyncHandle
+            }
+            if try handler.handle(url: url, components: candidates.components) == .handled {
+                return true
+            }
+        }
+        return runFallback(for: url)
+    }
 
+    /// Handles a URL with the best matching registered handler, awaiting it
+    /// when it is asynchronous.
+    ///
+    /// This runs synchronous and asynchronous handlers alike, with the same
+    /// precedence, fall-through, and ``fallback`` as the synchronous
+    /// `handle(_:)`.
+    ///
+    /// - Parameter url: The incoming URL to route.
+    /// - Returns: `true` if a handler or the ``fallback`` handled the URL;
+    ///   otherwise, `false` when the URL scheme is not allowed, the URL host
+    ///   is not registered, or no handler matches or every matching handler
+    ///   declines and there is no fallback.
+    /// - Throws: Any error thrown while decoding a matching typed route. A
+    ///   decode error stops routing rather than falling through.
+    @MainActor public func handle(_ url: URL) async throws -> Bool {
+        guard var candidates = candidates(for: url) else {
+            return false
+        }
+        while let handler = candidates.next() {
+            if try await handler.handle(url: url, components: candidates.components) == .handled {
+                return true
+            }
+        }
+        return runFallback(for: url)
+    }
+
+    /// Returns the handlers matching an admitted URL, or `nil` when its
+    /// scheme or host is rejected.
+    private func candidates(for url: URL) -> Candidates? {
         if let allowedSchemes {
             guard let scheme = url.scheme?.lowercased(),
                   allowedSchemes.contains(where: { $0.lowercased() == scheme }) else {
-                return false
+                return nil
             }
         }
 
         let host: String?
         if let urlHost = url.host?.lowercased(), !urlHost.isEmpty {
             guard urlHost == baseHost.lowercased() || handlers.contains(where: { $0.handler.host == urlHost }) else {
-                return false
+                return nil
             }
             host = urlHost
         } else {
             // A custom-scheme URL such as myapp:///products/42 has no host.
             guard url.scheme != nil, baseHost.isEmpty else {
-                return false
+                return nil
             }
             host = nil
         }
 
         let components = url.pathwayPathComponents
-        var candidates = handlers.map(\.handler).filter { $0.canHandle(host: host, components: components) }
-        while let index = Self.mostSpecificIndex(in: candidates) {
-            let handler = candidates.remove(at: index)
-            if try handler.handle(url: url, components: components) == .handled {
-                return true
-            }
-        }
-        if let fallback {
-            fallback(PathwayRequest(url: url, supportFragmentParams: false))
-            return true
-        }
-        return false
+        return Candidates(
+            components: components,
+            remaining: handlers.map(\.handler).filter { $0.canHandle(host: host, components: components) }
+        )
     }
 
-    /// Equally specific handlers keep the first one registered.
-    private static func mostSpecificIndex(in candidates: [any PathwayHandling]) -> Int? {
-        var best: Int?
-        for index in candidates.indices {
-            if let current = best, !candidates[index].isMoreSpecific(than: candidates[current]) {
-                continue
-            }
-            best = index
+    @MainActor private func runFallback(for url: URL) -> Bool {
+        guard let fallback else {
+            return false
         }
-        return best
+        fallback(PathwayRequest(url: url, supportFragmentParams: false))
+        return true
+    }
+
+    /// Matching handlers, yielded most specific first.
+    private struct Candidates {
+        let components: [String]
+        var remaining: [any PathwayHandling]
+
+        /// Equally specific handlers keep the first one registered.
+        mutating func next() -> (any PathwayHandling)? {
+            var best: Int?
+            for index in remaining.indices {
+                if let current = best, !remaining[index].isMoreSpecific(than: remaining[current]) {
+                    continue
+                }
+                best = index
+            }
+            return best.map { remaining.remove(at: $0) }
+        }
     }
 
     /// Removes one registration.

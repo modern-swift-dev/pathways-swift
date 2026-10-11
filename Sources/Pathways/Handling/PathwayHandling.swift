@@ -12,13 +12,19 @@ protocol PathwayHandling: Sendable {
     /// The matcher for the handler's current pattern
     var matcher: PathwayMatcher { get }
 
+    /// Whether only the async router `handle(_:)` can run this handler
+    var isAsync: Bool { get }
+
     /// Return true if the url is supported by this handler.
     ///
     /// A `nil` host, from a URL without one, matches only hostless handlers.
     func canHandle(host: String?, components: [String]) -> Bool
 
-    /// Execute the logic of the handler, reporting whether it handled the URL
+    /// Execute the logic of a synchronous handler, reporting whether it handled the URL
     @MainActor func handle(url: URL, components: [String]) throws -> PathwayHandlerResult
+
+    /// Execute the logic of any handler, reporting whether it handled the URL
+    @MainActor func handle(url: URL, components: [String]) async throws -> PathwayHandlerResult
 }
 
 extension PathwayHandling {

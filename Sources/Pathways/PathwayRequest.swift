@@ -3,7 +3,7 @@ import Foundation
 /// The URL a handler was invoked for, with its query parameters.
 public struct PathwayRequest: Sendable, Equatable {
 
-    /// The URL being routed, exactly as passed to ``PathwaysProviding/handle(_:)``.
+    /// The URL being routed, exactly as passed to `handle(_:)`.
     public let url: URL
 
     /// The query parameters merged into a dictionary.

@@ -15,7 +15,7 @@ struct PathwayPathHandler: PathwayHandling {
     let matcher: PathwayMatcher
 
     /// The handler
-    private let handler: @MainActor @Sendable (PathwayRequest) -> PathwayHandlerResult
+    private let handler: PathwayHandler<Void>
 
     /// Flag for fragment params handling
     private let supportFragmentParams: Bool
@@ -30,7 +30,7 @@ struct PathwayPathHandler: PathwayHandling {
         path: String,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
-        handler: @MainActor @Sendable @escaping (PathwayRequest) -> PathwayHandlerResult
+        handler: PathwayHandler<Void>
     ) {
         // Hosts are case-insensitive.
         self.host = host?.lowercased()
@@ -47,8 +47,17 @@ struct PathwayPathHandler: PathwayHandling {
         return matcher.matches(components)
     }
 
+    var isAsync: Bool {
+        handler.isAsync
+    }
+
     /// Handle the URL using the callback.
     @MainActor func handle(url: URL, components _: [String]) throws -> PathwayHandlerResult {
-        handler(PathwayRequest(url: url, supportFragmentParams: supportFragmentParams))
+        try handler((), PathwayRequest(url: url, supportFragmentParams: supportFragmentParams))
+    }
+
+    /// Handle the URL using the callback, awaiting it when it is asynchronous.
+    @MainActor func handle(url: URL, components _: [String]) async throws -> PathwayHandlerResult {
+        await handler((), PathwayRequest(url: url, supportFragmentParams: supportFragmentParams))
     }
 }

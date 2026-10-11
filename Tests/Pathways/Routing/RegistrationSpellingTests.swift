@@ -95,10 +95,10 @@ import Testing
         let hosts: [String?] = ["host.example", nil]
         var selected: [String] = []
         for host in hosts {
-            router.register(host: host, path: "/settings", matching: .exact, supportFragmentParams: false) { _ in
+            router.register(host: host, path: "/settings", matching: .exact, supportFragmentParams: false, handler: .sync { _, _ in
                 selected.append(host ?? "hostless")
                 return .handled
-            }
+            })
         }
 
         #expect(router.registeredHosts() == ["host.example"])
