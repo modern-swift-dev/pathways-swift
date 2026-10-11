@@ -9,9 +9,27 @@ protocol PathwayHandling: Sendable {
     /// The host
     var host: String? { get }
 
+    /// The matcher for the handler's current pattern
+    var matcher: PathwayMatcher { get }
+
     /// Return true if the url is supported by this handler
     func canHandle(host: String, components: [String]) -> Bool
 
     /// Execute the logic of the handler
     @MainActor func handle(url: URL, components: [String]) throws
+}
+
+extension PathwayHandling {
+    /// Returns whether this handler should win over another that matched the same URL.
+    ///
+    /// Equally specific patterns prefer a host-specific registration.
+    func isMoreSpecific(than other: any PathwayHandling) -> Bool {
+        if matcher.isMoreSpecific(than: other.matcher) {
+            return true
+        }
+        if other.matcher.isMoreSpecific(than: matcher) {
+            return false
+        }
+        return host != nil && other.host == nil
+    }
 }

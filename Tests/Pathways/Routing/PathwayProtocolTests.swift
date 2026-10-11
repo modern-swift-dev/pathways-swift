@@ -55,7 +55,7 @@ import Testing
         #expect(try center.handle(#require(URL(string: "https://other.example/settings"))) == false)
     }
 
-    @Test(arguments: [false, true]) func lexicalPrecedenceIgnoresRegistrationOrder(reverseOrder: Bool) throws {
+    @Test(arguments: [false, true]) func longerPatternWinsRegardlessOfRegistrationOrder(reverseOrder: Bool) throws {
         var center = Pathways()
         center.baseHost = "localhost"
         var selectedPattern: String?
@@ -69,17 +69,78 @@ import Testing
         #expect(selectedPattern == "/user/1")
     }
 
-    @Test func lexicalPrecedenceDoesNotPreferLongerLiteralPattern() throws {
+    private struct VersionRoute: Pathway {
+        static let pattern = "/v/:id"
+        let id: String
+    }
+
+    @Test(arguments: [false, true], ["2", ".well-known", "-", "z"])
+    func literalComponentBeatsPlaceholder(reverseOrder: Bool, literal: String) throws {
         var center = Pathways()
         center.baseHost = "localhost"
-        var receivedID: Int?
-        center.register(path: "/user/1/details") { _ in
-            Issue.record("Longer but lexically smaller pattern selected")
+        var selected: String?
+        let registrations: [(inout Pathways) -> Void] = [
+            { $0.register(path: "/v/\(literal)") { _ in selected = "literal" } },
+            { $0.register(VersionRoute.self) { _, _ in selected = "typed" } }
+        ]
+        for register in reverseOrder ? registrations.reversed() : registrations {
+            register(&center)
         }
-        center.register(TestSingleFieldPathway.self) { route, _ in receivedID = route.id }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/v/\(literal)"))))
+        #expect(selected == "literal")
+        #expect(try center.handle(#require(URL(string: "https://localhost/v/other"))))
+        #expect(selected == "typed")
+    }
+
+    @Test func longerLiteralPatternBeatsShorterTypedPattern() throws {
+        var center = Pathways()
+        center.baseHost = "localhost"
+        var selected: String?
+        center.register(TestSingleFieldPathway.self) { _, _ in selected = "typed" }
+        center.register(path: "/user/1/details") { _ in selected = "literal" }
 
         #expect(try center.handle(#require(URL(string: "https://localhost/user/1/details"))))
-        #expect(receivedID == 1)
+        #expect(selected == "literal")
+    }
+
+    @Test func earlierLiteralBeatsLaterLiteral() throws {
+        var center = Pathways()
+        center.baseHost = "localhost"
+        var selected: String?
+        center.register(TestMultiFieldPathway.self) { _, _ in selected = "/user/:id/type/:type" }
+        center.register(TestEnumPathway.self) { _, _ in selected = "/user/:user_id/type/:type" }
+        center.register(path: "/user/1") { _ in selected = "/user/1" }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/user/1/type/admin"))))
+        #expect(selected == "/user/1")
+    }
+
+    @Test(arguments: [false, true]) func exactBeatsPrefixForEqualPatterns(reverseOrder: Bool) throws {
+        var center = Pathways()
+        center.baseHost = "localhost"
+        var selected: PathwayMatchPolicy?
+        for policy in reverseOrder ? [PathwayMatchPolicy.exact, .prefix] : [.prefix, .exact] {
+            center.register(path: "/settings", matching: policy) { _ in selected = policy }
+        }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/settings"))))
+        #expect(selected == .exact)
+    }
+
+    @Test(arguments: [false, true]) func hostSpecificBeatsHostlessForEqualPatterns(reverseOrder: Bool) throws {
+        var center = Pathways()
+        var selected: String?
+        let registrations: [(inout Pathways) -> Void] = [
+            { $0.register(path: "/settings") { _ in selected = "hostless" } },
+            { $0.register(host: "localhost", path: "/settings") { _ in selected = "host" } }
+        ]
+        for register in reverseOrder ? registrations.reversed() : registrations {
+            register(&center)
+        }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/settings"))))
+        #expect(selected == "host")
     }
 
     @Test func equalPatternsSelectFirstRegisteredHandler() throws {

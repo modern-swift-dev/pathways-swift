@@ -119,9 +119,12 @@ public protocol PathwaysProviding: Sendable {
     /// - Returns: `true` if a handler ran; otherwise, `false` when the URL host
     ///   is not registered or no handler matches.
     /// - Throws: Any error thrown while decoding a matching typed route.
-    /// - Important: When several handlers match, Pathways selects the handler
-    ///   with the lexicographically greatest pattern. Do not rely on registration
-    ///   order as a precedence mechanism.
+    /// - Important: When several handlers match, Pathways selects the most
+    ///   specific one. At the first path component where two patterns differ,
+    ///   a literal beats a `:` placeholder; otherwise the longer pattern wins,
+    ///   then exact matching beats prefix matching, then a host-specific
+    ///   registration beats a hostless one. Equally specific registrations
+    ///   keep the first one registered.
     @MainActor func handle(_ url: URL) throws -> Bool
 
     /// Removes every registered handler.

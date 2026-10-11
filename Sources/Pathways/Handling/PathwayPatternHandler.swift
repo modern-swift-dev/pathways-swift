@@ -43,10 +43,13 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
             return false
         }
 
+        return matcher.matches(components)
+    }
+
+    var matcher: PathwayMatcher {
         let pattern = T.pattern
         // Computed pattern providers may change after registration.
-        let matcher = pattern == initialPattern ? initialMatcher : PathwayMatcher(pattern: pattern, matching: matching)
-        return matcher.matches(components)
+        return pattern == initialPattern ? initialMatcher : PathwayMatcher(pattern: pattern, matching: matching)
     }
 
     /// Handle the URL using the callback. Throwing if the url could not be succesfully decoded

@@ -12,7 +12,7 @@ struct PathwayPathHandler: PathwayHandling {
 
     /// The path
     private let path: String
-    private let matcher: PathwayMatcher
+    let matcher: PathwayMatcher
 
     /// The handler
     private let handler: @MainActor @Sendable ([String: String]) -> Void

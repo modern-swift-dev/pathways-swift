@@ -43,7 +43,7 @@ public protocol Pathway: PathwayDecodable, PathwayEncodable {}
 ///
 /// Each placeholder matches exactly one non-empty path component.
 struct PathwayMatcher: Sendable {
-    private enum Component: Sendable {
+    private enum Component: Sendable, Equatable {
         case literal(String)
         case placeholder
     }
@@ -82,5 +82,27 @@ struct PathwayMatcher: Sendable {
                     !value.isEmpty
             }
         }
+    }
+
+    /// Returns whether this matcher should win over another that matched the same path.
+    ///
+    /// At the first component where the patterns differ, a literal beats a
+    /// placeholder. Otherwise the pattern with more components wins, then
+    /// ``PathwayMatchPolicy/exact`` beats ``PathwayMatchPolicy/prefix``.
+    func isMoreSpecific(than other: PathwayMatcher) -> Bool {
+        for (lhs, rhs) in zip(components, other.components) {
+            switch (lhs, rhs) {
+                case (.literal, .placeholder):
+                    return true
+                case (.placeholder, .literal):
+                    return false
+                default:
+                    continue
+            }
+        }
+        if components.count != other.components.count {
+            return components.count > other.components.count
+        }
+        return matching == .exact && other.matching == .prefix
     }
 }
