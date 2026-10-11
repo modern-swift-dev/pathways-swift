@@ -26,7 +26,8 @@ public final class PathwayEncoder: Sendable {
     /// - Returns: A percent-encoded path beginning with `/`.
     /// - Throws: ``PathwayError/notEncodable`` when `value` does not
     ///   provide a compatible pattern, leaves a placeholder unfilled (including
-    ///   an omitted optional value), or cannot be represented by it; throws
+    ///   an omitted optional value), fills one with an empty value, or cannot
+    ///   be represented by it; throws
     ///   ``PathwayError/unsupported`` for nested or unkeyed containers.
     public func encode(_ value: some Encodable) throws -> String {
         guard let encodableType = value as? (any PathwayPatternProvider) else {
@@ -47,7 +48,8 @@ public final class PathwayEncoder: Sendable {
     /// - Returns: The resolved URL, or `nil` when Foundation cannot construct it.
     /// - Throws: ``PathwayError/notEncodable`` when `value` does not
     ///   provide a compatible pattern, leaves a placeholder unfilled (including
-    ///   an omitted optional value), or cannot be represented by it; throws
+    ///   an omitted optional value), fills one with an empty value, or cannot
+    ///   be represented by it; throws
     ///   ``PathwayError/unsupported`` for nested or unkeyed containers.
     public func encode(_ value: some Encodable, relativeTo: URL) throws -> URL? {
         let path = try encode(value)
@@ -77,7 +79,9 @@ private class PathwayEncoderImpl: Encoder {
         guard !isUnsupported else {
             throw PathwayError.unsupported
         }
-        guard let index = placeholderIndices[key]?.last,
+        // An empty component would produce a path the decoder cannot match.
+        guard !value.isEmpty,
+              let index = placeholderIndices[key]?.last,
               let value = value.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) else {
             throw PathwayError.notEncodable
         }

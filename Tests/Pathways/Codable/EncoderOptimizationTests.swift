@@ -169,4 +169,17 @@ struct EncoderOptimizationTests {
         }
     }
 
+    private struct NameRoute: Pathway {
+        static let pattern = "/names/:name"
+        let name: String
+    }
+
+    @Test func emptyValuesThrowBecauseTheyCannotBeDecoded() throws {
+        #expect(throws: PathwayError.notEncodable) {
+            try PathwayEncoder.shared.encode(NameRoute(name: ""))
+        }
+        #expect(throws: PathwayError.invalidURL) {
+            try PathwayDecoder.shared.decode(NameRoute.self, from: #require(URL(string: "https://localhost/names/")))
+        }
+    }
 }
