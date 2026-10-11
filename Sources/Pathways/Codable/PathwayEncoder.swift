@@ -158,8 +158,9 @@ private struct PathwaySingleValueEncodingContainer: SingleValueEncodingContainer
         try parent.replace(key: key.stringValue, value: value.description)
     }
 
+    /// A path component cannot represent nil.
     func encodeNil() throws {
-        try rawEncode("nil")
+        throw PathwayError.notEncodable
     }
 
     func encode(_ value: Bool) throws {
@@ -244,8 +245,9 @@ private struct PathwayKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingConta
         self.parent = parent
     }
 
-    func encodeNil(forKey key: Key) throws {
-        try rawEncode(value: "nil", key: key)
+    /// A path component cannot represent nil.
+    func encodeNil(forKey _: Key) throws {
+        throw PathwayError.notEncodable
     }
 
     func encode(_ value: Bool, forKey key: Key) throws {

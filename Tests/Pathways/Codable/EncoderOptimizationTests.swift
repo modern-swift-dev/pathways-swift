@@ -182,4 +182,35 @@ struct EncoderOptimizationTests {
             try PathwayDecoder.shared.decode(NameRoute.self, from: #require(URL(string: "https://localhost/names/")))
         }
     }
+
+    private struct NilValue: Encodable {
+        func encode(to encoder: any Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encodeNil()
+        }
+    }
+
+    private struct NilRoute: PathwayEncodable {
+        static let pattern = "/users/:id"
+        let singleValue: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case id
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            if singleValue {
+                try container.encode(NilValue(), forKey: .id)
+            } else {
+                try container.encodeNil(forKey: .id)
+            }
+        }
+    }
+
+    @Test(arguments: [false, true]) func explicitNilThrowsInsteadOfEncodingText(singleValue: Bool) throws {
+        #expect(throws: PathwayError.notEncodable) {
+            try PathwayEncoder.shared.encode(NilRoute(singleValue: singleValue))
+        }
+    }
 }
