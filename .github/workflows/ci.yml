@@ -82,3 +82,19 @@ jobs:
         run: xcodebuild build -scheme Pathways -destination '${{ matrix.destination }}' 2>&1 | mint run --no-install cpisciotta/xcbeautify -q
       - name: Test on ${{ matrix.destination }}
         run: xcodebuild test -scheme Pathways -destination '${{ matrix.destination }}' 2>&1 | mint run --no-install cpisciotta/xcbeautify -q
+
+  apple-build-only:
+    runs-on: macos-26
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    strategy:
+      matrix:
+        platform: [tvOS, watchOS]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install xcbeautify
+        run: |
+          brew install mint
+          mint install cpisciotta/xcbeautify
+      - name: Build for ${{ matrix.platform }}
+        run: xcodebuild build -scheme Pathways -destination 'generic/platform=${{ matrix.platform }}' 2>&1 | mint run --no-install cpisciotta/xcbeautify -q
