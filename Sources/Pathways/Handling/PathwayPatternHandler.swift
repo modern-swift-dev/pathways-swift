@@ -10,7 +10,7 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
     let host: String?
 
     /// The handler
-    private let handler: @MainActor @Sendable (T, [String: String]) -> Void
+    private let handler: @MainActor @Sendable (T, PathwayRequest) -> Void
 
     /// Flag for fragment params handling
     private let supportFragmentParams: Bool
@@ -28,7 +28,7 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
         host: String? = nil,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
-        _ handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
+        _ handler: @MainActor @Sendable @escaping (T, PathwayRequest) -> Void
     ) {
         // Hosts are case-insensitive.
         self.host = host?.lowercased()
@@ -56,6 +56,6 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
     /// Handle the URL using the callback. Throwing if the url could not be successfully decoded
     @MainActor func handle(url: URL, components: [String]) throws {
         let result = try PathwayDecoder.shared.decodeMatched(T.self, from: url, pattern: T.pattern, components: components)
-        handler(result, url.pathwayParameters(supportFragmentParams: supportFragmentParams))
+        handler(result, PathwayRequest(url: url, supportFragmentParams: supportFragmentParams))
     }
 }

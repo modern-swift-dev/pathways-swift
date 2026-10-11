@@ -7,7 +7,7 @@ import Testing
     @Test func queryParametersAreDelivered() throws {
         let url = try #require(URL(string: "https://example.com/path?one=1&two=2"))
 
-        let params = url.pathwayParameters(supportFragmentParams: false)
+        let params = PathwayRequest(url: url, supportFragmentParams: false).parameters
 
         #expect(params == ["one": "1", "two": "2"])
     }
@@ -15,7 +15,7 @@ import Testing
     @Test func fragmentParamsReturnsItemsAfterQuestionMark() throws {
         let url = try #require(URL(string: "https://example.com/path#section?token=abc&mode=edit"))
 
-        let params = url.pathwayParameters(supportFragmentParams: true)
+        let params = PathwayRequest(url: url, supportFragmentParams: true).parameters
 
         #expect(params == ["token": "abc", "mode": "edit"])
     }
@@ -23,13 +23,13 @@ import Testing
     @Test func fragmentParamsIgnoresFragmentsWithoutQuerySeparator() throws {
         let url = try #require(URL(string: "https://example.com/path#section"))
 
-        #expect(url.pathwayParameters(supportFragmentParams: true).isEmpty)
+        #expect(PathwayRequest(url: url, supportFragmentParams: true).parameters.isEmpty)
     }
 
     @Test func fragmentParamsIgnoresMalformedPairsAndKeepsFlags() throws {
         let url = try #require(URL(string: "https://example.com/path#section?valid=yes&flag&empty=&=nameless&too=many=parts"))
 
-        let params = url.pathwayParameters(supportFragmentParams: true)
+        let params = PathwayRequest(url: url, supportFragmentParams: true).parameters
 
         #expect(params == ["valid": "yes", "flag": "", "empty": ""])
     }
@@ -39,20 +39,20 @@ import Testing
         let expected = supportFragmentParams
             ? ["debug": "", "term": "a+b", "verbose": ""]
             : ["debug": "", "term": "a+b"]
-        #expect(url.pathwayParameters(supportFragmentParams: supportFragmentParams) == expected)
+        #expect(PathwayRequest(url: url, supportFragmentParams: supportFragmentParams).parameters == expected)
     }
 
     @Test func fragmentParametersCombineWithQueryParameters() throws {
         let url = try #require(URL(string: "https://example.com/path?q=1#section?f=2"))
 
-        let params = url.pathwayParameters(supportFragmentParams: true)
+        let params = PathwayRequest(url: url, supportFragmentParams: true).parameters
 
         #expect(params == ["q": "1", "f": "2"])
     }
 
     @Test func fragmentParametersDecodeOnlyAfterSplitting() throws {
         let url = try #require(URL(string: "https://example.com/path#complete?token=a%26b%3Dc&name=hello%20world&literal=a%2520b&question=a%3Fb&encoded%26key=value"))
-        #expect(url.pathwayParameters(supportFragmentParams: true) == [
+        #expect(PathwayRequest(url: url, supportFragmentParams: true).parameters == [
             "token": "a&b=c",
             "name": "hello world",
             "literal": "a%20b",
@@ -71,12 +71,12 @@ import Testing
         let expected = supportFragmentParams
             ? ["duplicate": "fragmentLast", "deleted": "", "empty": "", "missing": "", "token": "fragment"]
             : ["duplicate": "last", "deleted": "", "empty": "", "token": "query"]
-        #expect(url.pathwayParameters(supportFragmentParams: supportFragmentParams) == expected)
+        #expect(PathwayRequest(url: url, supportFragmentParams: supportFragmentParams).parameters == expected)
     }
 
     @Test func consolidatedParametersPreserveEncodedSeparators() throws {
         let url = try #require(URL(string: "https://example.com/path?query=a%26b%3Dc#section?encoded%26key=a%3Db%26c&literal=a%2520b&question=a%3Fb"))
-        #expect(url.pathwayParameters(supportFragmentParams: true) == [
+        #expect(PathwayRequest(url: url, supportFragmentParams: true).parameters == [
             "query": "a&b=c",
             "encoded&key": "a=b&c",
             "literal": "a%20b",
@@ -86,8 +86,8 @@ import Testing
 
     @Test(arguments: ["https://example.com/path", "https://example.com/path?#section?", "https://example.com/path#section"]) func consolidatedParametersHandleEmptyQueries(_ address: String) throws {
         let url = try #require(URL(string: address))
-        #expect(url.pathwayParameters(supportFragmentParams: true).isEmpty)
-        #expect(url.pathwayParameters(supportFragmentParams: false).isEmpty)
+        #expect(PathwayRequest(url: url, supportFragmentParams: true).parameters.isEmpty)
+        #expect(PathwayRequest(url: url, supportFragmentParams: false).parameters.isEmpty)
     }
 
 }

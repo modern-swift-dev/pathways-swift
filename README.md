@@ -216,6 +216,24 @@ This supports a URL such as `https://example.com/callback#complete?token=abc`. F
 
 A parameter without a value, such as `?debug`, is delivered as an empty string. When a name repeats, the last value wins. A `+` stays a literal plus sign, so percent-encode spaces as `%20`.
 
+### Request handlers
+
+A handler can receive a `PathwayRequest` instead of the parameter dictionary. The request carries the original URL, the same `parameters` dictionary, and the ordered `queryItems`, which keep every value of a repeated name and leave valueless flags with a `nil` value:
+
+```swift
+router.register(host: "example.com", ProductRoute.self) { route, request in
+    analytics.log(opened: request.url)
+    let tags = request.queryItems.filter { $0.name == "tag" }.compactMap(\.value)
+    navigateToProduct(id: route.productID, tags: tags)
+}
+
+router.register(host: "example.com", path: "/search") { request in
+    search(terms: request.queryItems.filter { $0.name == "q" }.compactMap(\.value))
+}
+```
+
+When fragment parameters are enabled for the registration, the fragment's query items follow the standard ones.
+
 ## Examples
 
 The [Examples](Examples/README.md) directory contains standalone packages:

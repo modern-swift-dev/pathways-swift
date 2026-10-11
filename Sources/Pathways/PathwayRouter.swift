@@ -26,7 +26,8 @@ public struct PathwayRouter: PathwaysProviding {
     /// Registers a typed handler.
     ///
     /// Prefer the ``PathwaysProviding`` conveniences, which supply defaults
-    /// for `host`, `matching`, and `supportFragmentParams`.
+    /// for `host`, `matching`, and `supportFragmentParams`, and also accept
+    /// handlers that receive the parameter dictionary instead of the request.
     ///
     /// - Parameters:
     ///   - host: The URL host the handler accepts, compared case-insensitively,
@@ -35,9 +36,9 @@ public struct PathwayRouter: PathwaysProviding {
     ///     matched and decoded.
     ///   - matching: The policy used to match the route.
     ///   - supportFragmentParams: Whether to merge query items following a
-    ///     fragment route into the handler's parameter dictionary.
+    ///     fragment route into the request's parameters and query items.
     ///   - handler: The main-actor closure invoked with the decoded route and
-    ///     URL parameters.
+    ///     the request.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
     public mutating func register<T: Pathway>(
@@ -45,7 +46,7 @@ public struct PathwayRouter: PathwaysProviding {
         _: T.Type,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
-        handler: @escaping @MainActor @Sendable (T, [String: String]) -> Void
+        handler: @escaping @MainActor @Sendable (T, PathwayRequest) -> Void
     ) {
         handlers.append(PathwayPatternHandler(
             host: host,
@@ -58,7 +59,8 @@ public struct PathwayRouter: PathwaysProviding {
     /// Registers a path handler.
     ///
     /// Prefer the ``PathwaysProviding`` conveniences, which supply defaults
-    /// for `host`, `matching`, and `supportFragmentParams`.
+    /// for `host`, `matching`, and `supportFragmentParams`, and also accept
+    /// handlers that receive the parameter dictionary instead of the request.
     ///
     /// - Parameters:
     ///   - host: The URL host the handler accepts, compared case-insensitively,
@@ -66,8 +68,8 @@ public struct PathwayRouter: PathwaysProviding {
     ///   - path: The path the handler accepts.
     ///   - matching: The policy used to match the path.
     ///   - supportFragmentParams: Whether to merge query items following a
-    ///     fragment route into the handler's parameter dictionary.
-    ///   - handler: The main-actor closure invoked with URL parameters.
+    ///     fragment route into the request's parameters and query items.
+    ///   - handler: The main-actor closure invoked with the request.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
     public mutating func register(
@@ -75,7 +77,7 @@ public struct PathwayRouter: PathwaysProviding {
         path: String,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
-        handler: @escaping @MainActor @Sendable ([String: String]) -> Void
+        handler: @escaping @MainActor @Sendable (PathwayRequest) -> Void
     ) {
         handlers.append(PathwayPathHandler(
             host: host,
