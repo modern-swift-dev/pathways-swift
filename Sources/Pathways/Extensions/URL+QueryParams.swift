@@ -2,16 +2,6 @@ import Foundation
 
 extension URL {
 
-    /// Query a consolidated list of all url params, both query and fragment
-    var allParams: [URLQueryItem] {
-        queryParams + fragmentParams
-    }
-
-    /// Return only the Query Parameters
-    var queryParams: [URLQueryItem] {
-        URLComponents(url: self, resolvingAgainstBaseURL: false)?.queryItems ?? []
-    }
-
     /// Collect routing parameters with a single URLComponents parse.
     func pathwayParameters(supportFragmentParams: Bool) -> [String: String] {
         guard let components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
@@ -22,15 +12,6 @@ extension URL {
             Self.forEachFragmentParameter(in: components.percentEncodedFragment) { name, value in
                 parameters[name] = value
             }
-        }
-        return parameters
-    }
-
-    /// Return only the fragment params
-    var fragmentParams: [URLQueryItem] {
-        var parameters: [URLQueryItem] = []
-        Self.forEachFragmentParameter(in: URLComponents(url: self, resolvingAgainstBaseURL: false)?.percentEncodedFragment) { name, value in
-            parameters.append(URLQueryItem(name: name, value: value))
         }
         return parameters
     }

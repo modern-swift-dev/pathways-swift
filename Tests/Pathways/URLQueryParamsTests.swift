@@ -4,10 +4,10 @@ import Testing
 
 @Suite(.serialized) struct URLQueryParamsTests {
 
-    @Test func queryParamsReturnsQueryItems() throws {
+    @Test func queryParametersAreDelivered() throws {
         let url = try #require(URL(string: "https://example.com/path?one=1&two=2"))
 
-        let params = url.queryParams.asDictionary
+        let params = url.pathwayParameters(supportFragmentParams: false)
 
         #expect(params == ["one": "1", "two": "2"])
     }
@@ -15,7 +15,7 @@ import Testing
     @Test func fragmentParamsReturnsItemsAfterQuestionMark() throws {
         let url = try #require(URL(string: "https://example.com/path#section?token=abc&mode=edit"))
 
-        let params = url.fragmentParams.asDictionary
+        let params = url.pathwayParameters(supportFragmentParams: true)
 
         #expect(params == ["token": "abc", "mode": "edit"])
     }
@@ -23,13 +23,13 @@ import Testing
     @Test func fragmentParamsIgnoresFragmentsWithoutQuerySeparator() throws {
         let url = try #require(URL(string: "https://example.com/path#section"))
 
-        #expect(url.fragmentParams.isEmpty)
+        #expect(url.pathwayParameters(supportFragmentParams: true).isEmpty)
     }
 
     @Test func fragmentParamsIgnoresMalformedPairsAndKeepsFlags() throws {
         let url = try #require(URL(string: "https://example.com/path#section?valid=yes&flag&empty=&=nameless&too=many=parts"))
 
-        let params = url.fragmentParams.asDictionary
+        let params = url.pathwayParameters(supportFragmentParams: true)
 
         #expect(params == ["valid": "yes", "flag": "", "empty": ""])
     }
@@ -42,17 +42,17 @@ import Testing
         #expect(url.pathwayParameters(supportFragmentParams: supportFragmentParams) == expected)
     }
 
-    @Test func allParamsCombinesQueryAndFragmentParams() throws {
+    @Test func fragmentParametersCombineWithQueryParameters() throws {
         let url = try #require(URL(string: "https://example.com/path?q=1#section?f=2"))
 
-        let params = url.allParams.asDictionary
+        let params = url.pathwayParameters(supportFragmentParams: true)
 
         #expect(params == ["q": "1", "f": "2"])
     }
 
     @Test func fragmentParametersDecodeOnlyAfterSplitting() throws {
         let url = try #require(URL(string: "https://example.com/path#complete?token=a%26b%3Dc&name=hello%20world&literal=a%2520b&question=a%3Fb&encoded%26key=value"))
-        #expect(url.fragmentParams.asDictionary == [
+        #expect(url.pathwayParameters(supportFragmentParams: true) == [
             "token": "a&b=c",
             "name": "hello world",
             "literal": "a%20b",
@@ -72,7 +72,6 @@ import Testing
             ? ["duplicate": "fragmentLast", "deleted": "", "empty": "", "missing": "", "token": "fragment"]
             : ["duplicate": "last", "deleted": "", "empty": "", "token": "query"]
         #expect(url.pathwayParameters(supportFragmentParams: supportFragmentParams) == expected)
-        #expect(url.pathwayParameters(supportFragmentParams: supportFragmentParams) == (supportFragmentParams ? url.allParams : url.queryParams).asDictionary)
     }
 
     @Test func consolidatedParametersPreserveEncodedSeparators() throws {
