@@ -39,115 +39,48 @@ public protocol PathwayEncodable: Encodable, PathwayPatternProvider {}
 ///   unkeyed containers are unsupported.
 public protocol Pathway: PathwayDecodable, PathwayEncodable {}
 
-/// Matches a canonically percent-encoded path without compiling a regular expression.
+/// Matches decoded URL path components against a route pattern.
+///
+/// Each placeholder matches exactly one non-empty path component.
 struct PathwayMatcher: Sendable {
     private enum Component: Sendable {
         case literal(String)
         case placeholder
     }
 
-    private enum Strategy: Sendable {
-        case prefix([String])
-        case exact([Component])
-        case invalid
+    private let components: [Component]
+    private let matching: PathwayMatchPolicy
+
+    /// Creates a matcher whose `:` components are placeholders.
+    init(pattern: String, matching: PathwayMatchPolicy) {
+        components = pattern.split(separator: "/").map { $0.hasPrefix(":") ? .placeholder : .literal(String($0)) }
+        self.matching = matching
     }
 
-    private let strategy: Strategy
+    /// Creates a matcher whose components are all literals.
+    init(path: String, matching: PathwayMatchPolicy) {
+        components = path.split(separator: "/").map { .literal(String($0)) }
+        self.matching = matching
+    }
 
-    init(pattern: String, matching policy: PathwayMatchPolicy) {
-        var components: [Component] = []
-        for component in pattern.split(separator: "/") {
-            if component.hasPrefix(":") {
-                components.append(.placeholder)
-            } else if let literal = component.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) {
-                components.append(.literal(literal))
-            } else {
-                strategy = .invalid
-                return
+    func matches(_ pathComponents: [String]) -> Bool {
+        switch matching {
+            case .prefix:
+                guard pathComponents.count >= components.count else {
+                    return false
+                }
+            case .exact:
+                guard pathComponents.count == components.count else {
+                    return false
+                }
+        }
+        return zip(components, pathComponents).allSatisfy { component, value in
+            switch component {
+                case let .literal(literal):
+                    value == literal
+                case .placeholder:
+                    !value.isEmpty
             }
         }
-
-        switch policy {
-            case .prefix:
-                var literals: [String] = []
-                var literal = "/"
-                for (index, component) in components.enumerated() {
-                    if index > 0 {
-                        literal += "/"
-                    }
-                    switch component {
-                        case let .literal(value):
-                            literal += value
-                        case .placeholder:
-                            literals.append(literal)
-                            literal = ""
-                    }
-                }
-                literals.append(literal)
-                strategy = .prefix(literals)
-            case .exact:
-                strategy = .exact(components)
-        }
-    }
-
-    func matches(_ normalizedPath: String) -> Bool {
-        switch strategy {
-            case let .prefix(literals):
-                guard let first = literals.first, normalizedPath.hasPrefix(first) else {
-                    return false
-                }
-                var position = normalizedPath.index(normalizedPath.startIndex, offsetBy: first.count)
-                if literals.count == 1 {
-                    return endsComponent(first, in: normalizedPath, at: position)
-                }
-                // A wildcard may consume any number of components. Choosing the
-                // earliest next literal leaves the most input for later literals.
-                for (index, literal) in literals.enumerated().dropFirst() where !literal.isEmpty {
-                    let isLast = index == literals.count - 1
-                    var searchStart = position
-                    while true {
-                        guard let range = normalizedPath.range(of: literal, options: .literal, range: searchStart ..< normalizedPath.endIndex) else {
-                            return false
-                        }
-                        if !isLast || endsComponent(literal, in: normalizedPath, at: range.upperBound) {
-                            position = range.upperBound
-                            break
-                        }
-                        searchStart = normalizedPath.index(after: range.lowerBound)
-                    }
-                }
-                return true
-            case let .exact(components):
-                guard normalizedPath.hasPrefix("/") else {
-                    return false
-                }
-                if components.isEmpty {
-                    return normalizedPath == "/"
-                }
-                let values = normalizedPath.dropFirst().split(separator: "/", maxSplits: components.count, omittingEmptySubsequences: false)
-                guard values.count == components.count else {
-                    return false
-                }
-                for (component, value) in zip(components, values) {
-                    switch component {
-                        case let .literal(literal):
-                            guard value == literal else {
-                                return false
-                            }
-                        case .placeholder:
-                            guard !value.isEmpty else {
-                                return false
-                            }
-                    }
-                }
-                return true
-            case .invalid:
-                return false
-        }
-    }
-
-    /// A trailing literal must end a path component, so `/about` does not match `/aboutus`.
-    private func endsComponent(_ literal: String, in path: String, at position: String.Index) -> Bool {
-        literal.hasSuffix("/") || position == path.endIndex || path[position] == "/"
     }
 }

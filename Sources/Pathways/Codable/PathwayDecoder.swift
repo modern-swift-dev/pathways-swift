@@ -36,9 +36,8 @@ public final class PathwayDecoder: Sendable {
         }
 
         let components = from.pathwayPathComponents
-        let path = components.pathwayMatchingPath
 
-        guard PathwayMatcher(pattern: decodableType.pattern, matching: .prefix).matches(path) else {
+        guard PathwayMatcher(pattern: decodableType.pattern, matching: .prefix).matches(components) else {
             throw PathwayError.invalidURL
         }
 

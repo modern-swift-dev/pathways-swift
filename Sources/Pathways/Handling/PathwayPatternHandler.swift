@@ -38,7 +38,7 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
         self.handler = handler
     }
 
-    func canHandle(host candidateHost: String, path: String) -> Bool {
+    func canHandle(host candidateHost: String, components: [String]) -> Bool {
         if let host, candidateHost != host {
             return false
         }
@@ -46,7 +46,7 @@ struct PathwayPatternHandler<T: Pathway>: PathwayHandling {
         let pattern = T.pattern
         // Computed pattern providers may change after registration.
         let matcher = pattern == initialPattern ? initialMatcher : PathwayMatcher(pattern: pattern, matching: matching)
-        return matcher.matches(path)
+        return matcher.matches(components)
     }
 
     /// Handle the URL using the callback. Throwing if the url could not be succesfully decoded

@@ -12,16 +12,13 @@ struct PathwayPathHandler: PathwayHandling {
 
     /// The path
     private let path: String
-    private let encodedPath: String
+    private let matcher: PathwayMatcher
 
     /// The handler
     private let handler: @MainActor @Sendable ([String: String]) -> Void
 
     /// Flag for fragment params handling
     private let supportFragmentParams: Bool
-
-    /// The path matching behavior.
-    private let matching: PathwayMatchPolicy
 
     /// The initializer
     /// - parameter host: If supplied, the host of the URL is validated.
@@ -37,25 +34,16 @@ struct PathwayPathHandler: PathwayHandling {
     ) {
         self.host = host
         self.path = path
-        // Normalize like incoming URLs so leading, trailing, and repeated slashes don't matter.
-        encodedPath = path.split(separator: "/").map(String.init).pathwayMatchingPath
-        self.matching = matching
+        matcher = PathwayMatcher(path: path, matching: matching)
         self.supportFragmentParams = supportFragmentParams
         self.handler = handler
     }
 
-    func canHandle(host candidateHost: String, path candidatePath: String) -> Bool {
+    func canHandle(host candidateHost: String, components: [String]) -> Bool {
         if let host, candidateHost != host {
             return false
         }
-
-        return switch matching {
-            case .prefix:
-                // Only whole components match, so `/settings` does not match `/settings-legacy`.
-                candidatePath == encodedPath || candidatePath.hasPrefix(encodedPath.hasSuffix("/") ? encodedPath : encodedPath + "/")
-            case .exact:
-                candidatePath == encodedPath
-        }
+        return matcher.matches(components)
     }
 
     /// Handle the URL using the callback.

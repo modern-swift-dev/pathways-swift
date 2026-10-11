@@ -132,6 +132,15 @@ import Testing
         #expect(try center.handle(otherHostURL) == false)
     }
 
+    @Test func prefixTypedPlaceholdersDoNotSpanComponents() throws {
+        var center = Pathways()
+        center.register(host: "localhost", TestMultiFieldPathway.self) { _, _ in
+            Issue.record("placeholder matched more than one component")
+        }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/user/1/2/type/admin"))) == false)
+    }
+
     @Test func prefixPathRegistrationMatchesWholeComponentsOnly() throws {
         var center = Pathways()
         center.register(host: "localhost", path: "/settings") { _ in }

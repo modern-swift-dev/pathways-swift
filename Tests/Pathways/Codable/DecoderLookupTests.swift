@@ -45,7 +45,7 @@ struct DecoderLookupTests {
         let url = try #require(URL(string: "https://localhost/first/second"))
         #expect(try PathwayDecoder.shared.decode(DuplicateRoute.self, from: url).value == "first")
         let emptyFirst = try #require(URL(string: "https://localhost///second"))
-        #expect(throws: PathwayError.notFound) {
+        #expect(throws: PathwayError.invalidURL) {
             try PathwayDecoder.shared.decode(DuplicateRoute.self, from: emptyFirst)
         }
     }

@@ -38,17 +38,3 @@ extension URL {
     }
 
 }
-
-extension [String] {
-    /// Canonical escaping lets matching distinguish a separator from an escaped slash.
-    var pathwayMatchingPath: String {
-        var path = "/"
-        for (index, component) in enumerated() {
-            if index > 0 {
-                path += "/"
-            }
-            path += component.addingPercentEncoding(withAllowedCharacters: .pathwayComponentAllowed) ?? component
-        }
-        return path
-    }
-}

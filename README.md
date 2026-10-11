@@ -158,7 +158,7 @@ router.register(host: "example.com", path: "/settings", matching: .exact) { quer
 }
 ```
 
-Exact matching also applies to typed routes. Each `:` placeholder matches one non-empty path component.
+Exact matching also applies to typed routes. With either policy, each `:` placeholder matches exactly one non-empty path component.
 
 ## Query and fragment parameters
 
