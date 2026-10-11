@@ -43,12 +43,17 @@ public final class PathwayDecoder: Sendable {
             throw PathwayError.invalidURL
         }
 
+        guard from.host != nil else {
+            throw PathwayError.notDecodable(key: nil, value: nil)
+        }
+
         return try decodeMatched(type, from: from, pattern: decodableType.pattern, components: components)
     }
 
-    /// The router has already validated the pattern against these components.
+    /// The router has already validated the pattern against these components
+    /// and admitted the URL's host, which may be absent.
     func decodeMatched<T: Decodable>(_ type: T.Type, from: URL, pattern: String, components: [String]) throws -> T {
-        guard from.host != nil, from.scheme != nil else {
+        guard from.scheme != nil else {
             throw PathwayError.notDecodable(key: nil, value: nil)
         }
 

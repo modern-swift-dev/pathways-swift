@@ -91,7 +91,9 @@ public struct PathwayRouter: PathwaysProviding {
     /// - Parameter url: The incoming URL to route.
     /// - Returns: `true` if a handler ran; otherwise, `false` when the URL
     ///   scheme is not allowed, the URL host is not registered, or no handler
-    ///   matches.
+    ///   matches. A URL without a host, such as `myapp:///products/42`, is
+    ///   considered only by hostless registrations, and only while
+    ///   ``baseHost`` is empty.
     /// - Throws: Any error thrown while decoding a matching typed route.
     /// - Important: When several handlers match, Pathways selects the most
     ///   specific one. At the first path component where two patterns differ,
@@ -108,9 +110,18 @@ public struct PathwayRouter: PathwaysProviding {
             }
         }
 
-        guard let host = url.host?.lowercased(),
-              host == baseHost.lowercased() || handlers.contains(where: { $0.host == host }) else {
-            return false
+        let host: String?
+        if let urlHost = url.host?.lowercased(), !urlHost.isEmpty {
+            guard urlHost == baseHost.lowercased() || handlers.contains(where: { $0.host == urlHost }) else {
+                return false
+            }
+            host = urlHost
+        } else {
+            // A custom-scheme URL such as myapp:///products/42 has no host.
+            guard url.scheme != nil, baseHost.isEmpty else {
+                return false
+            }
+            host = nil
         }
 
         let components = url.pathwayPathComponents

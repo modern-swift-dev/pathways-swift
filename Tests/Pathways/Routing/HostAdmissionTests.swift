@@ -74,3 +74,74 @@ import Testing
         #expect(try router.handle(#require(URL(string: "https://products/42"))) == false)
     }
 }
+
+@MainActor struct HostlessURLTests {
+    private struct ProductRoute: Pathway {
+        static let pattern = "/products/:productID"
+        let productID: Int
+    }
+
+    @Test(arguments: [PathwayMatchPolicy.prefix, .exact])
+    func hostlessURLReachesHostlessTypedRegistration(_ policy: PathwayMatchPolicy) throws {
+        var router = PathwayRouter()
+        var received: Int?
+        router.register(ProductRoute.self, matching: policy) { route, _ in received = route.productID }
+
+        #expect(try router.handle(#require(URL(string: "myapp:///products/42"))))
+        #expect(received == 42)
+    }
+
+    @Test func hostlessURLReachesHostlessPathRegistration() throws {
+        var router: any PathwaysProviding = PathwayRouter()
+        var received: [String: String]?
+        router.register(path: "/settings") { received = $0 }
+
+        #expect(try router.handle(#require(URL(string: "myapp:///settings/privacy?tab=a"))))
+        #expect(received == ["tab": "a"])
+    }
+
+    @Test func hostlessURLIsRejectedWhenTheBaseHostIsSet() throws {
+        var router = PathwayRouter()
+        router.baseHost = "example.com"
+        router.register(path: "/settings") { _ in Issue.record("hostless URL admitted for a base host") }
+
+        #expect(try router.handle(#require(URL(string: "myapp:///settings"))) == false)
+    }
+
+    @Test func hostSpecificRegistrationsNeverMatchAHostlessURL() throws {
+        var router = PathwayRouter()
+        router.register(host: "", path: "/settings") { _ in Issue.record("empty host matched a hostless URL") }
+        router.register(host: "products", path: "/settings") { _ in Issue.record("host matched a hostless URL") }
+        router.register(host: "products", ProductRoute.self) { _, _ in Issue.record("host matched a hostless URL") }
+
+        #expect(try router.handle(#require(URL(string: "myapp:///settings"))) == false)
+        #expect(try router.handle(#require(URL(string: "myapp:///products/42"))) == false)
+    }
+
+    @Test func hostlessURLSkipsHostSpecificRegistrationsForTheSamePath() throws {
+        var router = PathwayRouter()
+        var selected: [String] = []
+        router.register(host: "products", path: "/settings") { _ in selected.append("host") }
+        router.register(path: "/settings") { _ in selected.append("hostless") }
+
+        #expect(try router.handle(#require(URL(string: "myapp:///settings"))))
+        #expect(try router.handle(#require(URL(string: "myapp://products/settings"))))
+        #expect(selected == ["hostless", "host"])
+    }
+
+    @Test(arguments: [("myapp:///settings", true), ("MYAPP:///settings", true), ("other:///settings", false)])
+    func schemeAllowlistAppliesToHostlessURLs(address: String, expected: Bool) throws {
+        var router = PathwayRouter()
+        router.allowedSchemes = ["myapp"]
+        router.register(path: "/settings") { _ in }
+
+        #expect(try router.handle(#require(URL(string: address))) == expected)
+    }
+
+    @Test func relativeURLWithoutSchemeIsNotRouted() throws {
+        var router = PathwayRouter()
+        router.register(path: "/settings") { _ in Issue.record("relative URL routed") }
+
+        #expect(try router.handle(#require(URL(string: "/settings"))) == false)
+    }
+}

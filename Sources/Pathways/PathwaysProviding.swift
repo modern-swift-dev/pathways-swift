@@ -70,7 +70,9 @@ public protocol PathwaysProviding: Sendable {
     /// - Parameter url: The incoming URL to route.
     /// - Returns: `true` if a handler ran; otherwise, `false` when the URL
     ///   scheme is not allowed, the URL host is not registered, or no handler
-    ///   matches.
+    ///   matches. A URL without a host, such as `myapp:///products/42`, is
+    ///   considered only by hostless registrations, and only while
+    ///   ``baseHost`` is empty.
     /// - Throws: Any error thrown while decoding a matching typed route.
     /// - Important: When several handlers match, Pathways selects the most
     ///   specific one. At the first path component where two patterns differ,

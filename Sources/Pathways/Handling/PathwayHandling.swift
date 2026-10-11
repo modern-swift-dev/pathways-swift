@@ -12,8 +12,10 @@ protocol PathwayHandling: Sendable {
     /// The matcher for the handler's current pattern
     var matcher: PathwayMatcher { get }
 
-    /// Return true if the url is supported by this handler
-    func canHandle(host: String, components: [String]) -> Bool
+    /// Return true if the url is supported by this handler.
+    ///
+    /// A `nil` host, from a URL without one, matches only hostless handlers.
+    func canHandle(host: String?, components: [String]) -> Bool
 
     /// Execute the logic of the handler
     @MainActor func handle(url: URL, components: [String]) throws

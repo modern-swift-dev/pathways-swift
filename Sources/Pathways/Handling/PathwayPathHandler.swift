@@ -40,7 +40,7 @@ struct PathwayPathHandler: PathwayHandling {
         self.handler = handler
     }
 
-    func canHandle(host candidateHost: String, components: [String]) -> Bool {
+    func canHandle(host candidateHost: String?, components: [String]) -> Bool {
         if let host, candidateHost != host {
             return false
         }

@@ -170,6 +170,34 @@ Hosts are compared case-insensitively. Every scheme is accepted by default; rest
 router.allowedSchemes = ["https"]
 ```
 
+### Custom-scheme URLs
+
+Custom-scheme deep links come in two shapes, and each needs its own registration:
+
+- `myapp://products/42` has a host. Foundation parses `products` as the host and `/42` as the path, so register for that host with a pattern that starts after it:
+
+  ```swift
+  struct ProductIDRoute: Pathway {
+      static let pattern = "/:productID"
+
+      let productID: Int
+  }
+
+  router.register(host: "products", ProductIDRoute.self) { route, _ in
+      navigateToProduct(id: route.productID)
+  }
+  ```
+
+- `myapp:///products/42` has no host, and its whole path is `/products/42`. A URL without a host only reaches hostless registrations, and only while `baseHost` is empty (the default):
+
+  ```swift
+  router.register(ProductRoute.self) { route, _ in
+      navigateToProduct(id: route.productID)
+  }
+  ```
+
+Host-specific registrations never match a URL without a host, and `allowedSchemes` applies to both shapes.
+
 ## Query and fragment parameters
 
 Handler dictionaries contain standard query parameters by default. For URLs that encode a route and parameters in the fragment, opt in per registration:
