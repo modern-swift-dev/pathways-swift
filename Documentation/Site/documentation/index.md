@@ -51,6 +51,21 @@ Typed handlers validate and decode path values. Path-only handlers use prefix ma
 
 `handle(_:)` returns whether a handler ran and rethrows decoding or handler errors.
 
+<a id="swiftui"></a>
+
+### Route opened URLs in SwiftUI
+
+Where SwiftUI is available, `onOpenURL(routingTo:onError:)` sends each URL opened in a view hierarchy to the router's async `handle(_:)`, so asynchronous handlers run. Routing errors go to `onError` instead of being discarded.
+
+```swift
+ContentView()
+    .onOpenURL(routingTo: router) { error in
+        print("Could not route URL: \(error)")
+    }
+```
+
+URLs that no registration handles are not errors; set the router's `fallback` to handle them. The modifier is compiled only where SwiftUI exists, so Linux builds are unaffected.
+
 <a id="supported-values"></a>
 
 Supported values

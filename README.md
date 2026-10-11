@@ -28,7 +28,8 @@ try router.handle(url)
 - Optional exact-host filtering
 - Query parameter delivery to handlers
 - Experimental fragment-route and fragment-parameter support
-- Swift 6 concurrency annotations and main-actor handler execution
+- Swift 6 concurrency annotations and main-actor handler execution, with synchronous or `async` handlers
+- A SwiftUI modifier that routes opened URLs
 - No third-party runtime dependencies
 
 ## Requirements
@@ -318,6 +319,34 @@ let handled = try await router.handle(url)
 ```
 
 The synchronous `handle(_:)` never skips an asynchronous handler: when it selects one, it throws `PathwayRouterError.asyncHandlerRequiresAsyncHandle`. In an `async` context, Swift selects the async `handle(_:)`, so write `try await router.handle(url)`.
+
+## SwiftUI
+
+Where SwiftUI is available, route URLs opened in a view hierarchy with `onOpenURL(routingTo:onError:)`. It passes each URL to the router's async `handle(_:)`, so asynchronous handlers run, and reports routing errors to `onError` instead of discarding them:
+
+```swift
+@main
+struct ShopApp: App {
+    let router: PathwayRouter = {
+        var router = PathwayRouter()
+        router.register(host: "example.com", ProductRoute.self) { route, _ in
+            navigateToProduct(id: route.productID)
+        }
+        return router
+    }()
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .onOpenURL(routingTo: router) { error in
+                    print("Could not route URL: \(error)")
+                }
+        }
+    }
+}
+```
+
+URLs that no registration handles are not errors; set the router's `fallback` to handle them. The modifier is compiled only where SwiftUI exists, so Linux builds are unaffected.
 
 ## Examples
 
