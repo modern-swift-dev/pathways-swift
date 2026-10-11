@@ -90,7 +90,11 @@ private final class PathwayDecoderImpl: Decoder {
     }
 
     func container<Key: CodingKey>(keyedBy _: Key.Type) throws -> KeyedDecodingContainer<Key> {
-        KeyedDecodingContainer(PathwayKeyedDecodingContainer(parent: self))
+        // Only the route itself is keyed; a nested model would read top-level placeholders.
+        guard codingPath.isEmpty else {
+            throw PathwayError.unsupported
+        }
+        return KeyedDecodingContainer(PathwayKeyedDecodingContainer(parent: self))
     }
 
     func unkeyedContainer() throws -> any UnkeyedDecodingContainer {

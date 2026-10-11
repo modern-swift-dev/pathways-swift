@@ -164,4 +164,32 @@ struct PathwayRegressionTests {
         #expect(route.second.path == ["second"])
         #expect(route.second.value == "second")
     }
+
+    private struct Inner: Codable, Sendable {
+        let id: String
+    }
+
+    private struct NestedRoute: Pathway {
+        static let pattern = "/nested/:id"
+        let inner: Inner
+    }
+
+    private struct URLRoute: Pathway {
+        static let pattern = "/link/:relative"
+        let link: URL
+    }
+
+    @Test func nestedModelsAreUnsupportedForDecodingAndEncoding() throws {
+        let url = try #require(URL(string: "https://localhost/nested/abc"))
+        #expect(throws: PathwayError.unsupported) {
+            try PathwayDecoder.shared.decode(NestedRoute.self, from: url)
+        }
+        #expect(throws: PathwayError.unsupported) {
+            try PathwayEncoder.shared.encode(NestedRoute(inner: Inner(id: "abc")))
+        }
+        let link = try #require(URL(string: "https://localhost/link/abc"))
+        #expect(throws: PathwayError.unsupported) {
+            try PathwayDecoder.shared.decode(URLRoute.self, from: link)
+        }
+    }
 }
