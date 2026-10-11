@@ -17,6 +17,15 @@ public struct PathwayRouter: PathwaysProviding {
     /// ignore the same paths delivered through other schemes.
     public var allowedSchemes: Set<String>?
 
+    /// The handler for admitted URLs that no registration handles.
+    ///
+    /// The fallback receives the request when no registration matches the
+    /// URL or every matching handler declines, so ``handle(_:)`` returns
+    /// `true`. It does not run for URLs rejected by ``allowedSchemes`` or
+    /// whose host is not admitted, nor after a decode error. Its request does
+    /// not include fragment parameters. `nil`, the default, disables it.
+    public var fallback: (@MainActor @Sendable (PathwayRequest) -> Void)?
+
     /// The registered handlers, in registration order
     private var handlers: [(id: PathwayRegistrationID, handler: any PathwayHandling)] = []
 
@@ -108,9 +117,10 @@ public struct PathwayRouter: PathwaysProviding {
     /// Handles a URL with the best matching registered handler.
     ///
     /// - Parameter url: The incoming URL to route.
-    /// - Returns: `true` if a handler handled the URL; otherwise, `false` when
-    ///   the URL scheme is not allowed, the URL host is not registered, or no
-    ///   handler matches or every matching handler declines. A URL without a host, such as `myapp:///products/42`, is
+    /// - Returns: `true` if a handler or the ``fallback`` handled the URL;
+    ///   otherwise, `false` when the URL scheme is not allowed, the URL host
+    ///   is not registered, or no handler matches or every matching handler
+    ///   declines and there is no fallback. A URL without a host, such as `myapp:///products/42`, is
     ///   considered only by hostless registrations, and only while
     ///   ``baseHost`` is empty.
     /// - Throws: Any error thrown while decoding a matching typed route. A
@@ -154,6 +164,10 @@ public struct PathwayRouter: PathwaysProviding {
                 return true
             }
         }
+        if let fallback {
+            fallback(PathwayRequest(url: url, supportFragmentParams: false))
+            return true
+        }
         return false
     }
 
@@ -182,7 +196,7 @@ public struct PathwayRouter: PathwaysProviding {
 
     /// Removes every registered handler.
     ///
-    /// This does not change ``baseHost``.
+    /// This does not change ``baseHost``, ``allowedSchemes``, or ``fallback``.
     public mutating func reset() {
         handlers.removeAll()
     }

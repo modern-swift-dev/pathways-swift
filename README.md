@@ -289,6 +289,18 @@ router.register(host: "example.com", path: "/checkout") { request in
 
 `handle(_:)` returns `false` when every matching handler declines. Handlers that receive the parameter dictionary don't return a result and always count as handled. Declining is the handler's choice only: a typed route that fails to decode still throws.
 
+### Fallback
+
+Give the router one place to handle links it could not route, such as showing a generic screen or opening the URL in a browser:
+
+```swift
+router.fallback = { request in
+    openInBrowser(request.url)
+}
+```
+
+The fallback runs when no registration matches the URL or every matching handler declines, and `handle(_:)` then returns `true`. It does not run for URLs rejected by `allowedSchemes` or whose host is not admitted, so `handle(_:)` still returns `false` for those, nor after a decode error, which still throws.
+
 ## Examples
 
 The [Examples](Examples/README.md) directory contains standalone packages:
