@@ -23,6 +23,10 @@ Patterns, coding keys, encoding, decoding, one-way models, and errors.
 
 Typed and path-only handlers, exact hosts, parameters, lifecycle, and SwiftUI integration.
 
+## [Migrating to 2.0](/docs/pathways-swift/documentation/migrating-to-2/)
+
+Every breaking change since 1.1.2: what changed, why, and what to do.
+
 ## [Supported values and limits](/docs/pathways-swift/documentation/#supported-values)
 
 Scalar values and the constraints of flat URL path data.

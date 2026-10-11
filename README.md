@@ -55,7 +55,7 @@ Or add the package in `Package.swift`:
 dependencies: [
     .package(
         url: "https://github.com/modern-swift-dev/pathways-swift.git",
-        from: "1.0.0"
+        from: "2.0.0"
     )
 ]
 ```
@@ -70,6 +70,10 @@ Add `Pathways` to the target that uses it:
     ]
 )
 ```
+
+## Migrating to 2.0
+
+Pathways 2.0 renames the router to `PathwayRouter`, matches URLs more strictly, ranks routes by specificity, reports the failing key and value in errors, and adds request, declining, fallback, and asynchronous handlers. The [Migrating to 2.0 guide](Documentation/Site/documentation/migrating-to-2/index.md) lists every breaking change since 1.1.2 with what changed, why, and what to do. It is also published on the [documentation site](https://modern-swift-dev.github.io/docs/pathways-swift/documentation/migrating-to-2/).
 
 ## Quick start
 
@@ -360,6 +364,7 @@ Each can be run independently with `swift run` from its directory.
 ## Documentation
 
 - [Guide](https://modern-swift-dev.github.io/docs/pathways-swift/)
+- [Migrating to 2.0](https://modern-swift-dev.github.io/docs/pathways-swift/documentation/migrating-to-2/)
 - [Examples](https://modern-swift-dev.github.io/docs/pathways-swift/examples/)
 - [API documentation](https://modern-swift-dev.github.io/docs/pathways-swift/documentation/pathways/)
 
