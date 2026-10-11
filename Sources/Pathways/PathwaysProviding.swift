@@ -17,11 +17,17 @@ public protocol PathwaysProviding: Sendable {
     /// `nil` accepts any scheme.
     var allowedSchemes: Set<String>? { get set }
 
-    /// Registers a typed handler without restricting it to a specific host.
+    /// Registers a typed handler.
+    ///
+    /// The conveniences in the protocol extension supply defaults for
+    /// `host`, `matching`, and `supportFragmentParams`.
     ///
     /// - Parameters:
+    ///   - host: The URL host the handler accepts, compared case-insensitively,
+    ///     or `nil` for a hostless registration.
     ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
     ///     matched and decoded.
+    ///   - matching: The policy used to match the route.
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the handler's parameter dictionary.
     ///   - handler: The main-actor closure invoked with the decoded route and
@@ -29,88 +35,30 @@ public protocol PathwaysProviding: Sendable {
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
     mutating func register<T: Pathway>(
+        host: String?,
         _ type: T.Type,
+        matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
         handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
     )
 
-    /// Registers a typed handler for one exact host.
+    /// Registers a path handler.
+    ///
+    /// The conveniences in the protocol extension supply defaults for
+    /// `host`, `matching`, and `supportFragmentParams`.
     ///
     /// - Parameters:
-    ///   - host: The URL host the handler accepts, compared case-insensitively.
-    ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
-    ///     matched and decoded.
-    ///   - supportFragmentParams: Whether to merge query items following a
-    ///     fragment route into the handler's parameter dictionary.
-    ///   - handler: The main-actor closure invoked with the decoded route and
-    ///     URL parameters.
-    mutating func register<T: Pathway>(
-        host: String,
-        _ type: T.Type,
-        supportFragmentParams: Bool,
-        handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
-    )
-
-    /// Registers a path-prefix handler without restricting it to a specific host.
-    ///
-    /// - Parameters:
-    ///   - path: The path prefix the handler accepts.
+    ///   - host: The URL host the handler accepts, compared case-insensitively,
+    ///     or `nil` for a hostless registration.
+    ///   - path: The path the handler accepts.
+    ///   - matching: The policy used to match the path.
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the handler's parameter dictionary.
     ///   - handler: The main-actor closure invoked with URL parameters.
     /// - Important: A hostless registration can handle URLs whose host equals
-    ///   ``baseHost`` or a host declared by another registration. Path matching
-    ///   is prefix-based.
+    ///   ``baseHost`` or a host declared by another registration.
     mutating func register(
-        path: String,
-        supportFragmentParams: Bool,
-        handler: @MainActor @Sendable @escaping ([String: String]) -> Void
-    )
-
-    /// Registers a path-prefix handler for one exact host.
-    ///
-    /// - Parameters:
-    ///   - host: The URL host the handler accepts, compared case-insensitively.
-    ///   - path: The path prefix the handler accepts.
-    ///   - supportFragmentParams: Whether to merge query items following a
-    ///     fragment route into the handler's parameter dictionary.
-    ///   - handler: The main-actor closure invoked with URL parameters.
-    /// - Important: Path matching is prefix-based.
-    mutating func register(
-        host: String,
-        path: String,
-        supportFragmentParams: Bool,
-        handler: @MainActor @Sendable @escaping ([String: String]) -> Void
-    )
-
-    /// Registers a typed handler with an explicit matching policy.
-    mutating func register<T: Pathway>(
-        _ type: T.Type,
-        matching: PathwayMatchPolicy,
-        supportFragmentParams: Bool,
-        handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
-    )
-
-    /// Registers a typed handler for one exact host with an explicit matching policy.
-    mutating func register<T: Pathway>(
-        host: String,
-        _ type: T.Type,
-        matching: PathwayMatchPolicy,
-        supportFragmentParams: Bool,
-        handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
-    )
-
-    /// Registers a path handler with an explicit matching policy.
-    mutating func register(
-        path: String,
-        matching: PathwayMatchPolicy,
-        supportFragmentParams: Bool,
-        handler: @MainActor @Sendable @escaping ([String: String]) -> Void
-    )
-
-    /// Registers a path handler for one exact host with an explicit matching policy.
-    mutating func register(
-        host: String,
+        host: String?,
         path: String,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
@@ -151,49 +99,91 @@ public protocol PathwaysProviding: Sendable {
 
 public extension PathwaysProviding {
 
-    /// Registers a typed handler without restricting it to a specific host.
+    /// Registers a typed handler for one exact host.
     ///
-    /// Fragment parameters are not delivered to the handler.
-    mutating func register<T: Pathway>(
-        _ type: T.Type,
-        matching: PathwayMatchPolicy = .prefix,
-        handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
-    ) {
-        register(type, matching: matching, supportFragmentParams: false, handler: handler)
-    }
-
-    /// Registers a typed handler for one host.
-    ///
-    /// Fragment parameters are not delivered to the handler.
+    /// - Parameters:
+    ///   - host: The URL host the handler accepts, compared case-insensitively.
+    ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
+    ///     matched and decoded.
+    ///   - matching: The policy used to match the route. Defaults to
+    ///     ``PathwayMatchPolicy/prefix``.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the handler's parameter dictionary. Defaults to
+    ///     `false`.
+    ///   - handler: The main-actor closure invoked with the decoded route and
+    ///     URL parameters.
     mutating func register<T: Pathway>(
         host: String,
         _ type: T.Type,
         matching: PathwayMatchPolicy = .prefix,
+        supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
     ) {
-        register(host: host, type, matching: matching, supportFragmentParams: false, handler: handler)
+        register(host: String?.some(host), type, matching: matching, supportFragmentParams: supportFragmentParams, handler: handler)
+    }
+
+    /// Registers a typed handler without restricting it to a specific host.
+    ///
+    /// - Parameters:
+    ///   - type: The route model whose ``PathwayPatternProvider/pattern`` is
+    ///     matched and decoded.
+    ///   - matching: The policy used to match the route. Defaults to
+    ///     ``PathwayMatchPolicy/prefix``.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the handler's parameter dictionary. Defaults to
+    ///     `false`.
+    ///   - handler: The main-actor closure invoked with the decoded route and
+    ///     URL parameters.
+    /// - Important: A hostless registration can handle URLs whose host equals
+    ///   ``baseHost`` or a host declared by another registration.
+    mutating func register<T: Pathway>(
+        _ type: T.Type,
+        matching: PathwayMatchPolicy = .prefix,
+        supportFragmentParams: Bool = false,
+        handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
+    ) {
+        register(host: nil, type, matching: matching, supportFragmentParams: supportFragmentParams, handler: handler)
+    }
+
+    /// Registers a path handler for one exact host.
+    ///
+    /// - Parameters:
+    ///   - host: The URL host the handler accepts, compared case-insensitively.
+    ///   - path: The path the handler accepts.
+    ///   - matching: The policy used to match the path. Defaults to
+    ///     ``PathwayMatchPolicy/prefix``.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the handler's parameter dictionary. Defaults to
+    ///     `false`.
+    ///   - handler: The main-actor closure invoked with URL parameters.
+    mutating func register(
+        host: String,
+        path: String,
+        matching: PathwayMatchPolicy = .prefix,
+        supportFragmentParams: Bool = false,
+        handler: @MainActor @Sendable @escaping ([String: String]) -> Void
+    ) {
+        register(host: String?.some(host), path: path, matching: matching, supportFragmentParams: supportFragmentParams, handler: handler)
     }
 
     /// Registers a path handler without restricting it to a specific host.
     ///
-    /// Fragment parameters are not delivered to the handler.
+    /// - Parameters:
+    ///   - path: The path the handler accepts.
+    ///   - matching: The policy used to match the path. Defaults to
+    ///     ``PathwayMatchPolicy/prefix``.
+    ///   - supportFragmentParams: Whether to merge query items following a
+    ///     fragment route into the handler's parameter dictionary. Defaults to
+    ///     `false`.
+    ///   - handler: The main-actor closure invoked with URL parameters.
+    /// - Important: A hostless registration can handle URLs whose host equals
+    ///   ``baseHost`` or a host declared by another registration.
     mutating func register(
         path: String,
         matching: PathwayMatchPolicy = .prefix,
+        supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping ([String: String]) -> Void
     ) {
-        register(path: path, matching: matching, supportFragmentParams: false, handler: handler)
-    }
-
-    /// Registers a path handler for one host.
-    ///
-    /// Fragment parameters are not delivered to the handler.
-    mutating func register(
-        host: String,
-        path: String,
-        matching: PathwayMatchPolicy = .prefix,
-        handler: @MainActor @Sendable @escaping ([String: String]) -> Void
-    ) {
-        register(host: host, path: path, matching: matching, supportFragmentParams: false, handler: handler)
+        register(host: nil, path: path, matching: matching, supportFragmentParams: supportFragmentParams, handler: handler)
     }
 }
