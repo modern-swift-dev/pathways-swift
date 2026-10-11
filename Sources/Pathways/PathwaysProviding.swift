@@ -149,3 +149,52 @@ public protocol PathwaysProviding: Sendable {
     /// - Returns: Registered patterns in ascending lexical order.
     func registeredPatterns() -> [String]
 }
+
+public extension PathwaysProviding {
+
+    /// Registers a typed handler without restricting it to a specific host.
+    ///
+    /// Fragment parameters are not delivered to the handler.
+    mutating func register<T: Pathway>(
+        _ type: T.Type,
+        matching: PathwayMatchPolicy = .prefix,
+        handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
+    ) {
+        register(type, matching: matching, supportFragmentParams: false, handler: handler)
+    }
+
+    /// Registers a typed handler for one host.
+    ///
+    /// Fragment parameters are not delivered to the handler.
+    mutating func register<T: Pathway>(
+        host: String,
+        _ type: T.Type,
+        matching: PathwayMatchPolicy = .prefix,
+        handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
+    ) {
+        register(host: host, type, matching: matching, supportFragmentParams: false, handler: handler)
+    }
+
+    /// Registers a path handler without restricting it to a specific host.
+    ///
+    /// Fragment parameters are not delivered to the handler.
+    mutating func register(
+        path: String,
+        matching: PathwayMatchPolicy = .prefix,
+        handler: @MainActor @Sendable @escaping ([String: String]) -> Void
+    ) {
+        register(path: path, matching: matching, supportFragmentParams: false, handler: handler)
+    }
+
+    /// Registers a path handler for one host.
+    ///
+    /// Fragment parameters are not delivered to the handler.
+    mutating func register(
+        host: String,
+        path: String,
+        matching: PathwayMatchPolicy = .prefix,
+        handler: @MainActor @Sendable @escaping ([String: String]) -> Void
+    ) {
+        register(host: host, path: path, matching: matching, supportFragmentParams: false, handler: handler)
+    }
+}

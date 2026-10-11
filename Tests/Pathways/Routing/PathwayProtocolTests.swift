@@ -160,4 +160,21 @@ import Testing
         #expect(router.registeredPatterns().isEmpty)
         #expect(error == .notFound)
     }
+
+    @Test func protocolRegistrationsUseDefaultArguments() throws {
+        var center: any PathwaysProviding = PathwayRouter()
+        center.baseHost = "localhost"
+        var selected: [String] = []
+        center.register(TestSingleFieldPathway.self) { _, _ in selected.append("typed") }
+        center.register(host: "localhost", TestMultiFieldPathway.self, matching: .exact) { _, _ in selected.append("host typed") }
+        center.register(path: "/settings") { _ in selected.append("path") }
+        center.register(host: "localhost", path: "/help", matching: .exact) { parameters in selected.append("host path \(parameters)") }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/user/1/details"))))
+        #expect(try center.handle(#require(URL(string: "https://localhost/user/1/type/admin"))))
+        #expect(try center.handle(#require(URL(string: "https://localhost/settings/privacy"))))
+        #expect(try center.handle(#require(URL(string: "https://localhost/help?b=c"))))
+        #expect(try center.handle(#require(URL(string: "https://localhost/help/more"))) == false)
+        #expect(selected == ["typed", "host typed", "path", "host path [\"b\": \"c\"]"])
+    }
 }
