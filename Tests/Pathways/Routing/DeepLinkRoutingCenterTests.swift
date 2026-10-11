@@ -132,6 +132,16 @@ import Testing
         #expect(try center.handle(otherHostURL) == false)
     }
 
+    @Test(arguments: ["/settings", "/settings/", "settings", "//settings//"])
+    func pathRegistrationsAreNormalized(_ path: String) throws {
+        var center = Pathways()
+        center.register(host: "localhost", path: path, matching: .exact) { _ in }
+
+        #expect(try center.handle(#require(URL(string: "https://localhost/settings"))))
+        #expect(try center.handle(#require(URL(string: "https://localhost/settings/"))))
+        #expect(center.registeredPatterns() == [path])
+    }
+
     @Test func exactTypedRegistrationMatchesOnePathComponent() throws {
         let matchedURL = try #require(URL(string: "https://localhost/user/1?campaign=summer"))
         let trailingURL = try #require(URL(string: "https://localhost/user/1/details"))

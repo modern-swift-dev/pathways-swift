@@ -12,7 +12,7 @@ struct PathwayPathHandler: PathwayHandling {
 
     /// The path
     private let path: String
-    private let encodedPath: String?
+    private let encodedPath: String
 
     /// The handler
     private let handler: @MainActor @Sendable ([String: String]) -> Void
@@ -37,7 +37,8 @@ struct PathwayPathHandler: PathwayHandling {
     ) {
         self.host = host
         self.path = path
-        encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+        // Normalize like incoming URLs so leading, trailing, and repeated slashes don't matter.
+        encodedPath = path.split(separator: "/").map(String.init).pathwayMatchingPath
         self.matching = matching
         self.supportFragmentParams = supportFragmentParams
         self.handler = handler
@@ -48,14 +49,11 @@ struct PathwayPathHandler: PathwayHandling {
             return false
         }
 
-        guard let path = encodedPath else {
-            return false
-        }
         return switch matching {
             case .prefix:
-                candidatePath.hasPrefix(path)
+                candidatePath.hasPrefix(encodedPath)
             case .exact:
-                candidatePath == path
+                candidatePath == encodedPath
         }
     }
 
