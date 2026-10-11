@@ -33,15 +33,18 @@ public protocol PathwaysProviding: Sendable {
     ///     fragment route into the request's parameters and query items.
     ///   - handler: The main-actor closure invoked with the decoded route and
     ///     the request.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
+    @discardableResult
     mutating func register<T: Pathway>(
         host: String?,
         _ type: T.Type,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
         handler: @MainActor @Sendable @escaping (T, PathwayRequest) -> Void
-    )
+    ) -> PathwayRegistrationID
 
     /// Registers a path handler.
     ///
@@ -57,15 +60,18 @@ public protocol PathwaysProviding: Sendable {
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the request's parameters and query items.
     ///   - handler: The main-actor closure invoked with the request.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
+    @discardableResult
     mutating func register(
         host: String?,
         path: String,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
         handler: @MainActor @Sendable @escaping (PathwayRequest) -> Void
-    )
+    ) -> PathwayRegistrationID
 
     /// Handles a URL with the best matching registered handler.
     ///
@@ -83,6 +89,15 @@ public protocol PathwaysProviding: Sendable {
     ///   registration beats a hostless one. Equally specific registrations
     ///   keep the first one registered.
     @MainActor func handle(_ url: URL) throws -> Bool
+
+    /// Removes one registration.
+    ///
+    /// Other registrations, including those for the same pattern, keep
+    /// working. Unregistering an unknown or already-removed identifier does
+    /// nothing.
+    ///
+    /// - Parameter registration: The identifier returned when registering.
+    mutating func unregister(_ registration: PathwayRegistrationID)
 
     /// Removes every registered handler.
     ///
@@ -116,13 +131,16 @@ public extension PathwaysProviding {
     ///     `false`.
     ///   - handler: The main-actor closure invoked with the decoded route and
     ///     URL parameters.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
+    @discardableResult
     mutating func register<T: Pathway>(
         host: String,
         _ type: T.Type,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
-    ) {
+    ) -> PathwayRegistrationID {
         register(host: String?.some(host), type, matching: matching, supportFragmentParams: supportFragmentParams, handler: { route, request in handler(route, request.parameters) })
     }
 
@@ -138,14 +156,17 @@ public extension PathwaysProviding {
     ///     `false`.
     ///   - handler: The main-actor closure invoked with the decoded route and
     ///     URL parameters.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
+    @discardableResult
     mutating func register<T: Pathway>(
         _ type: T.Type,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping (T, [String: String]) -> Void
-    ) {
+    ) -> PathwayRegistrationID {
         register(host: nil, type, matching: matching, supportFragmentParams: supportFragmentParams, handler: { route, request in handler(route, request.parameters) })
     }
 
@@ -160,13 +181,16 @@ public extension PathwaysProviding {
     ///     fragment route into the handler's parameter dictionary. Defaults to
     ///     `false`.
     ///   - handler: The main-actor closure invoked with URL parameters.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
+    @discardableResult
     mutating func register(
         host: String,
         path: String,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping ([String: String]) -> Void
-    ) {
+    ) -> PathwayRegistrationID {
         register(host: String?.some(host), path: path, matching: matching, supportFragmentParams: supportFragmentParams, handler: { request in handler(request.parameters) })
     }
 
@@ -180,14 +204,17 @@ public extension PathwaysProviding {
     ///     fragment route into the handler's parameter dictionary. Defaults to
     ///     `false`.
     ///   - handler: The main-actor closure invoked with URL parameters.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
+    @discardableResult
     mutating func register(
         path: String,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping ([String: String]) -> Void
-    ) {
+    ) -> PathwayRegistrationID {
         register(host: nil, path: path, matching: matching, supportFragmentParams: supportFragmentParams, handler: { request in handler(request.parameters) })
     }
 
@@ -204,14 +231,17 @@ public extension PathwaysProviding {
     ///     `false`.
     ///   - handler: The main-actor closure invoked with the decoded route and
     ///     the request.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
     @_disfavoredOverload
+    @discardableResult
     mutating func register<T: Pathway>(
         host: String,
         _ type: T.Type,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping (T, PathwayRequest) -> Void
-    ) {
+    ) -> PathwayRegistrationID {
         register(host: String?.some(host), type, matching: matching, supportFragmentParams: supportFragmentParams, handler: handler)
     }
 
@@ -227,15 +257,18 @@ public extension PathwaysProviding {
     ///     `false`.
     ///   - handler: The main-actor closure invoked with the decoded route and
     ///     the request.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
     @_disfavoredOverload
+    @discardableResult
     mutating func register<T: Pathway>(
         _ type: T.Type,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping (T, PathwayRequest) -> Void
-    ) {
+    ) -> PathwayRegistrationID {
         register(host: nil, type, matching: matching, supportFragmentParams: supportFragmentParams, handler: handler)
     }
 
@@ -250,14 +283,17 @@ public extension PathwaysProviding {
     ///     fragment route into the request's parameters and query items. Defaults to
     ///     `false`.
     ///   - handler: The main-actor closure invoked with the request.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
     @_disfavoredOverload
+    @discardableResult
     mutating func register(
         host: String,
         path: String,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping (PathwayRequest) -> Void
-    ) {
+    ) -> PathwayRegistrationID {
         register(host: String?.some(host), path: path, matching: matching, supportFragmentParams: supportFragmentParams, handler: handler)
     }
 
@@ -271,15 +307,18 @@ public extension PathwaysProviding {
     ///     fragment route into the request's parameters and query items. Defaults to
     ///     `false`.
     ///   - handler: The main-actor closure invoked with the request.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
     @_disfavoredOverload
+    @discardableResult
     mutating func register(
         path: String,
         matching: PathwayMatchPolicy = .prefix,
         supportFragmentParams: Bool = false,
         handler: @MainActor @Sendable @escaping (PathwayRequest) -> Void
-    ) {
+    ) -> PathwayRegistrationID {
         register(host: nil, path: path, matching: matching, supportFragmentParams: supportFragmentParams, handler: handler)
     }
 }

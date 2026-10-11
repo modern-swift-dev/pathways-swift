@@ -185,6 +185,20 @@ Exact matching also applies to typed routes. With either policy, each `:` placeh
 
 When several registrations match a URL, the most specific one runs. At the first path component where two patterns differ, a literal beats a `:` placeholder, so `/products/featured` wins over `/products/:productID`. Otherwise the longer pattern wins, then exact matching beats prefix matching, then a host-specific registration beats a hostless one. Equally specific registrations keep the first one registered.
 
+## Removing routes
+
+Every registration returns a discardable `PathwayRegistrationID`. Pass it to `unregister(_:)` to remove just that registration, such as when a feature or screen goes away; `reset()` removes every registration:
+
+```swift
+let registration = router.register(host: "example.com", path: "/promotions") { _ in
+    showPromotions()
+}
+
+router.unregister(registration)
+```
+
+Other registrations, including those for the same pattern, keep working. Unregistering an unknown or already-removed identifier does nothing.
+
 ## Hosts and schemes
 
 Hosts are compared case-insensitively. Every scheme is accepted by default; restrict it when the same path must not be reachable through another scheme:

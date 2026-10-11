@@ -17,8 +17,8 @@ public struct PathwayRouter: PathwaysProviding {
     /// ignore the same paths delivered through other schemes.
     public var allowedSchemes: Set<String>?
 
-    /// The registered handlers
-    private var handlers: [any PathwayHandling] = []
+    /// The registered handlers, in registration order
+    private var handlers: [(id: PathwayRegistrationID, handler: any PathwayHandling)] = []
 
     /// Creates a routing center with no registered handlers and an empty base host.
     public init() {}
@@ -39,16 +39,19 @@ public struct PathwayRouter: PathwaysProviding {
     ///     fragment route into the request's parameters and query items.
     ///   - handler: The main-actor closure invoked with the decoded route and
     ///     the request.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
+    @discardableResult
     public mutating func register<T: Pathway>(
         host: String?,
         _: T.Type,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
         handler: @escaping @MainActor @Sendable (T, PathwayRequest) -> Void
-    ) {
-        handlers.append(PathwayPatternHandler(
+    ) -> PathwayRegistrationID {
+        append(PathwayPatternHandler(
             host: host,
             matching: matching,
             supportFragmentParams: supportFragmentParams,
@@ -70,22 +73,31 @@ public struct PathwayRouter: PathwaysProviding {
     ///   - supportFragmentParams: Whether to merge query items following a
     ///     fragment route into the request's parameters and query items.
     ///   - handler: The main-actor closure invoked with the request.
+    /// - Returns: An identifier that ``unregister(_:)`` accepts to remove
+    ///   this registration.
     /// - Important: A hostless registration can handle URLs whose host equals
     ///   ``baseHost`` or a host declared by another registration.
+    @discardableResult
     public mutating func register(
         host: String?,
         path: String,
         matching: PathwayMatchPolicy,
         supportFragmentParams: Bool,
         handler: @escaping @MainActor @Sendable (PathwayRequest) -> Void
-    ) {
-        handlers.append(PathwayPathHandler(
+    ) -> PathwayRegistrationID {
+        append(PathwayPathHandler(
             host: host,
             path: path,
             matching: matching,
             supportFragmentParams: supportFragmentParams,
             handler: handler
         ))
+    }
+
+    private mutating func append(_ handler: any PathwayHandling) -> PathwayRegistrationID {
+        let id = PathwayRegistrationID()
+        handlers.append((id, handler))
+        return id
     }
 
     /// Handles a URL with the best matching registered handler.
@@ -114,7 +126,7 @@ public struct PathwayRouter: PathwaysProviding {
 
         let host: String?
         if let urlHost = url.host?.lowercased(), !urlHost.isEmpty {
-            guard urlHost == baseHost.lowercased() || handlers.contains(where: { $0.host == urlHost }) else {
+            guard urlHost == baseHost.lowercased() || handlers.contains(where: { $0.handler.host == urlHost }) else {
                 return false
             }
             host = urlHost
@@ -128,7 +140,7 @@ public struct PathwayRouter: PathwaysProviding {
 
         let components = url.pathwayPathComponents
         var bestHandler: (any PathwayHandling)?
-        for handler in handlers where handler.canHandle(host: host, components: components) {
+        for (_, handler) in handlers where handler.canHandle(host: host, components: components) {
             if let current = bestHandler, !handler.isMoreSpecific(than: current) {
                 continue
             }
@@ -142,6 +154,17 @@ public struct PathwayRouter: PathwaysProviding {
         return false
     }
 
+    /// Removes one registration.
+    ///
+    /// Other registrations, including those for the same pattern, keep
+    /// working. Unregistering an unknown or already-removed identifier does
+    /// nothing. Copies of the router are unaffected.
+    ///
+    /// - Parameter registration: The identifier returned when registering.
+    public mutating func unregister(_ registration: PathwayRegistrationID) {
+        handlers.removeAll { $0.id == registration }
+    }
+
     /// Removes every registered handler.
     ///
     /// This does not change ``baseHost``.
@@ -153,7 +176,7 @@ public struct PathwayRouter: PathwaysProviding {
     ///
     /// - Returns: Registered patterns in ascending lexical order.
     public func registeredPatterns() -> [String] {
-        handlers.map(\.pattern).sorted()
+        handlers.map(\.handler.pattern).sorted()
     }
 
     /// Returns the exact hosts declared by host-specific registrations.
@@ -161,6 +184,6 @@ public struct PathwayRouter: PathwaysProviding {
     /// - Returns: Registered hosts, lowercased, in ascending lexical order. This does not
     ///   include ``baseHost``.
     public func registeredHosts() -> [String] {
-        handlers.compactMap(\.host).sorted()
+        handlers.compactMap(\.handler.host).sorted()
     }
 }
